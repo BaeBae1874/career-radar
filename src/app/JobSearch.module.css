@@ -1,0 +1,349 @@
+/* 색상 변수(--text, --primary 등)는 page.module.css의 .page에서 상속받는다. */
+
+.search {
+  margin-bottom: 40px;
+}
+
+.heading {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.desc {
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.searchForm {
+  margin-top: 20px;
+  display: flex;
+  gap: 8px;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 16px;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 14px 16px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.searchInput::placeholder {
+  color: #b0b8c1;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.searchButton {
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--primary);
+  border: none;
+  border-radius: 10px;
+  padding: 0 24px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.searchButton:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.error {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #c4320a;
+  background: #fff6f2;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+/* ───── Results ───── */
+.results {
+  margin-top: 28px;
+}
+
+.resultsHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+
+.count {
+  font-size: 15px;
+  color: var(--text-body);
+}
+
+.countNum {
+  color: var(--primary);
+}
+
+.sampleNote {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.filters {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-body);
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.filterCount {
+  margin-left: 2px;
+  color: var(--text-muted);
+}
+
+.filterActive {
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  font-weight: 600;
+}
+
+.filterActive .filterCount {
+  color: var(--primary);
+}
+
+.list {
+  margin-top: 16px;
+  list-style: none;
+  border-top: 1px solid var(--text);
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 22px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cardSelected {
+  background: var(--bg-subtle);
+  box-shadow: inset 3px 0 0 var(--primary);
+  padding-left: 16px;
+}
+
+.cardMain {
+  min-width: 0;
+}
+
+.company {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-sub);
+}
+
+.companyType {
+  font-size: 12px;
+  color: var(--text-sub);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.title {
+  margin-top: 4px;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.meta {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 14px;
+  color: var(--text-body);
+}
+
+.meta > span + span::before {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 11px;
+  margin: 0 8px;
+  background: var(--border-strong);
+  vertical-align: -1px;
+}
+
+.deadline {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.keywords {
+  margin-top: 10px;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.keywords li {
+  font-size: 12px;
+  color: var(--text-sub);
+  background: var(--bg-subtle);
+  border-radius: 4px;
+  padding: 3px 8px;
+}
+
+.source {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 168px;
+}
+
+.analyzeButton,
+.linkButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.analyzeButton {
+  color: #fff;
+  background: var(--primary);
+  border: 1px solid var(--primary);
+}
+
+.linkButton {
+  color: var(--text-body);
+  background: #fff;
+  border: 1px solid var(--border-strong);
+}
+
+.empty {
+  margin-top: 16px;
+  padding: 40px 16px;
+  font-size: 15px;
+  text-align: center;
+  color: var(--text-sub);
+  border-top: 1px solid var(--text);
+  border-bottom: 1px solid var(--border);
+}
+
+.searchButton:focus-visible,
+.filter:focus-visible,
+.analyzeButton:focus-visible,
+.linkButton:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .searchButton:hover:not(:disabled),
+  .analyzeButton:hover {
+    background: var(--primary-hover);
+  }
+  .linkButton:hover {
+    border-color: var(--text-muted);
+  }
+  .filter:hover {
+    border-color: var(--text-muted);
+  }
+  .filterActive:hover {
+    border-color: var(--primary);
+  }
+}
+
+/* ───── Mobile ───── */
+@media (max-width: 600px) {
+  .heading {
+    font-size: 21px;
+  }
+  .searchForm {
+    flex-direction: column;
+  }
+  .searchButton {
+    padding: 14px 24px;
+  }
+  .card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 20px 0;
+  }
+  .cardSelected {
+    padding-left: 12px;
+    padding-right: 4px;
+  }
+  .title {
+    font-size: 16px;
+  }
+  .actions {
+    width: auto;
+    flex-direction: row;
+  }
+  .analyzeButton,
+  .linkButton {
+    flex: 1;
+  }
+}

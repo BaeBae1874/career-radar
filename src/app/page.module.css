@@ -133,6 +133,35 @@
   white-space: nowrap;
 }
 
+.analyze {
+  scroll-margin-top: 72px;
+}
+
+/* 직접 붙여넣기(보조 기능) 링크 */
+.manualToggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 18px 4px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.manualToggleText {
+  color: var(--text-sub);
+}
+
+.loadedNotice {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-body);
+  background: var(--primary-soft);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
 .form {
   margin-top: 24px;
   display: flex;

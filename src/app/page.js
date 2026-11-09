@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import styles from "./page.module.css";
+import JobSearch from "./JobSearch";
 
 const INTERESTS = ["마케팅", "기획", "데이터", "개발", "디자인", "금융", "콘텐츠"];
 
@@ -80,9 +81,23 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
-  const [formOpen, setFormOpen] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState(null);
   const resultRef = useRef(null);
+  const analyzeRef = useRef(null);
+
+  // 검색 결과에서 고른 공고를 분석 입력칸에 채운다. (OpenRouter 요청은 사용자가 직접 버튼을 눌러야 보냄)
+  const handleSelectJob = (job) => {
+    setSelectedJob(job);
+    setKeyword((job.keywords ?? []).join(", "));
+    setJobPosting(`공고명: ${job.title}\n회사명: ${job.company}\n\n${job.description ?? ""}`.trim());
+    setError("");
+    setFormOpen(true);
+    requestAnimationFrame(() => {
+      analyzeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
 
   const toggleInterest = (item) => {
     setInterests((prev) =>
@@ -126,7 +141,9 @@ export default function Home() {
     }
   };
 
-  const showForm = !result || formOpen;
+  const showForm = formOpen;
+  // 결과가 없고 입력 영역도 접혀 있으면, 큰 폼 대신 보조 링크만 보여준다
+  const showAnalyzeSection = Boolean(result) || formOpen;
   const collapsedJobTitle =
     result && result.jobTitle && result.jobTitle !== "없음"
       ? result.jobTitle
@@ -155,15 +172,37 @@ export default function Home() {
           )}
         </section>
 
-        <section className={styles.analyze} aria-labelledby="analyze-title">
-          <div className={styles.analyzeHead}>
-            <div className={styles.analyzeHeadText}>
-              <h2 id="analyze-title" className={styles.analyzeTitle}>
-                {showForm ? "공고 분석" : "분석한 공고"}
-              </h2>
-              {!showForm && <p className={styles.collapsedPreview}>{collapsedJobTitle}</p>}
-            </div>
-            {result && (
+        <JobSearch selectedJobId={selectedJob?.id} onAnalyze={handleSelectJob} />
+
+        {!showAnalyzeSection && (
+          <p className={styles.manualToggle}>
+            <span className={styles.manualToggleText}>원하는 공고가 없나요?</span>
+            <button
+              type="button"
+              className={styles.textButton}
+              aria-expanded={false}
+              aria-controls="analyze-form"
+              onClick={() => setFormOpen(true)}
+            >
+              직접 채용공고 붙여넣기
+              <Chevron open={false} />
+            </button>
+          </p>
+        )}
+
+        {showAnalyzeSection && (
+          <section
+            className={styles.analyze}
+            aria-labelledby="analyze-title"
+            ref={analyzeRef}
+          >
+            <div className={styles.analyzeHead}>
+              <div className={styles.analyzeHeadText}>
+                <h2 id="analyze-title" className={styles.analyzeTitle}>
+                  {showForm ? "공고 분석" : "분석한 공고"}
+                </h2>
+                {!showForm && <p className={styles.collapsedPreview}>{collapsedJobTitle}</p>}
+              </div>
               <button
                 type="button"
                 className={styles.textButton}
@@ -174,80 +213,87 @@ export default function Home() {
                 {formOpen ? "접기" : "분석할 공고 수정하기"}
                 <Chevron open={formOpen} />
               </button>
-            )}
-          </div>
+            </div>
 
-          {showForm && (
-            <form id="analyze-form" className={styles.form} onSubmit={handleSubmit}>
-              <div className={styles.field}>
-                <span className={styles.label} id="interest-label">
-                  관심 분야 <span className={styles.labelHint}>여러 개 선택 가능</span>
-                </span>
-                <div className={styles.options} role="group" aria-labelledby="interest-label">
-                  {INTERESTS.map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      aria-pressed={interests.includes(item)}
-                      className={`${styles.option} ${interests.includes(item) ? styles.optionActive : ""}`}
-                      onClick={() => toggleInterest(item)}
-                    >
-                      {item}
-                    </button>
-                  ))}
+            {showForm && (
+              <form id="analyze-form" className={styles.form} onSubmit={handleSubmit}>
+                {selectedJob && (
+                  <p className={styles.loadedNotice}>
+                    <strong>{selectedJob.company}</strong> · {selectedJob.title} 공고를 불러왔어요.
+                    내용을 확인한 뒤 아래 분석 버튼을 눌러 주세요.
+                  </p>
+                )}
+
+                <div className={styles.field}>
+                  <span className={styles.label} id="interest-label">
+                    관심 분야 <span className={styles.labelHint}>여러 개 선택 가능</span>
+                  </span>
+                  <div className={styles.options} role="group" aria-labelledby="interest-label">
+                    {INTERESTS.map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        aria-pressed={interests.includes(item)}
+                        className={`${styles.option} ${interests.includes(item) ? styles.optionActive : ""}`}
+                        onClick={() => toggleInterest(item)}
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="keyword">
-                  궁금한 직무나 키워드 <span className={styles.labelHint}>선택</span>
-                </label>
-                <input
-                  id="keyword"
-                  className={styles.input}
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                  placeholder="예: CRM, 그로스 마케팅, 서비스 기획"
-                />
-                <p className={styles.help}>
-                  정확한 직무명을 몰라도 괜찮아요. 아는 단어만 적어도 됩니다.
-                </p>
-              </div>
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="keyword">
+                    궁금한 직무나 키워드 <span className={styles.labelHint}>선택</span>
+                  </label>
+                  <input
+                    id="keyword"
+                    className={styles.input}
+                    value={keyword}
+                    onChange={(e) => setKeyword(e.target.value)}
+                    placeholder="예: CRM, 그로스 마케팅, 서비스 기획"
+                  />
+                  <p className={styles.help}>
+                    정확한 직무명을 몰라도 괜찮아요. 아는 단어만 적어도 됩니다.
+                  </p>
+                </div>
 
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="posting">
-                  채용공고 내용
-                </label>
-                <textarea
-                  id="posting"
-                  className={styles.textarea}
-                  rows={6}
-                  value={jobPosting}
-                  onChange={(e) => setJobPosting(e.target.value)}
-                  placeholder={JOB_POSTING_PLACEHOLDER}
-                />
-                <p className={styles.help}>
-                  분석하고 싶은 채용공고의 주요 업무, 자격요건, 우대사항 등을 붙여넣어 주세요.
-                </p>
-              </div>
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="posting">
+                    채용공고 내용
+                  </label>
+                  <textarea
+                    id="posting"
+                    className={styles.textarea}
+                    rows={6}
+                    value={jobPosting}
+                    onChange={(e) => setJobPosting(e.target.value)}
+                    placeholder={JOB_POSTING_PLACEHOLDER}
+                  />
+                  <p className={styles.help}>
+                    분석하고 싶은 채용공고의 주요 업무, 자격요건, 우대사항 등을 붙여넣어 주세요.
+                  </p>
+                </div>
 
-              {error && (
-                <p className={styles.error} role="alert">
-                  {error}
-                </p>
-              )}
+                {error && (
+                  <p className={styles.error} role="alert">
+                    {error}
+                  </p>
+                )}
 
-              <button
-                type="button"
-                className={styles.submit}
-                disabled={loading}
-                onClick={handleSubmit}
-              >
-                {loading ? "채용공고 분석 중..." : "채용공고 분석하기"}
-              </button>
-            </form>
-          )}
-        </section>
+                <button
+                  type="button"
+                  className={styles.submit}
+                  disabled={loading}
+                  onClick={handleSubmit}
+                >
+                  {loading ? "채용공고 분석 중..." : "채용공고 분석하기"}
+                </button>
+              </form>
+            )}
+          </section>
+        )}
 
         <p className={styles.intro}>
           Career Radar는 직업을 추천하기보다, 실제 채용공고를 바탕으로 직무의 차이를
