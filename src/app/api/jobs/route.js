@@ -14,7 +14,8 @@ const normalize = (v) => String(v ?? "").replace(/\s+/g, "").toLowerCase();
  *   1. .env.local 에 SARAMIN_API_KEY 추가
  *   2. 여기서 process.env.SARAMIN_API_KEY 로 사람인 채용공고 API를 서버에서 호출
  *   3. 응답을 sampleJobs.js 상단에 정리한 Job 구조로 변환해 반환
- *      (companyType 정보가 없으면 필드를 빼면 된다)
+ *      (companyType 정보가 없으면 필드를 빼면 된다.
+ *       비교용 tasks/required/preferred는 sections.js의 extractSections(description)로 만들 수 있다)
  *   프론트엔드는 GET /api/jobs?keyword=... 의 { jobs } 응답만 사용하므로 수정할 필요가 없다.
  */
 async function fetchJobs(keyword) {

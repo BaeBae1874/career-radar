@@ -5,16 +5,27 @@ import styles from "./JobSearch.module.css";
 
 const EMPLOYMENT_FILTERS = ["전체", "인턴", "정규직", "계약직"];
 
-function JobCard({ job, selected, onAnalyze }) {
+function JobCard({ job, selected, compared, onToggleCompare, onAnalyze }) {
   const meta = [job.employmentType, job.career, job.location].filter(Boolean);
   return (
     <li className={`${styles.card} ${selected ? styles.cardSelected : ""}`}>
       <div className={styles.cardMain}>
-        <p className={styles.company}>
-          {job.company}
-          {/* companyType은 데이터에 있을 때만 표시 (현재는 샘플 값) */}
-          {job.companyType && <span className={styles.companyType}>{job.companyType}</span>}
-        </p>
+        <div className={styles.cardTop}>
+          <p className={styles.company}>
+            {job.company}
+            {/* companyType은 데이터에 있을 때만 표시 (현재는 샘플 값) */}
+            {job.companyType && <span className={styles.companyType}>{job.companyType}</span>}
+          </p>
+          <label className={`${styles.compareCheck} ${compared ? styles.compareCheckOn : ""}`}>
+            <input
+              type="checkbox"
+              checked={compared}
+              onChange={() => onToggleCompare(job)}
+              aria-label={`${job.company} ${job.title} 비교 선택`}
+            />
+            비교 선택
+          </label>
+        </div>
         <h3 className={styles.title}>{job.title}</h3>
         <p className={styles.meta}>
           {meta.map((m, i) => (
@@ -51,7 +62,7 @@ function JobCard({ job, selected, onAnalyze }) {
   );
 }
 
-export default function JobSearch({ selectedJobId, onAnalyze }) {
+export default function JobSearch({ selectedJobId, compareIds = [], onToggleCompare, onAnalyze }) {
   const [query, setQuery] = useState("");
   const [jobs, setJobs] = useState(null); // null = 아직 검색 전
   const [isSample, setIsSample] = useState(false);
@@ -91,7 +102,7 @@ export default function JobSearch({ selectedJobId, onAnalyze }) {
     jobs && (filter === "전체" ? jobs : jobs.filter((j) => j.employmentType === filter));
 
   return (
-    <section className={styles.search} aria-labelledby="search-title">
+    <section id="find-jobs" className={styles.search} aria-labelledby="search-title">
       <h2 id="search-title" className={styles.heading}>
         어떤 일을 찾고 있나요?
       </h2>
@@ -168,6 +179,8 @@ export default function JobSearch({ selectedJobId, onAnalyze }) {
                   key={job.id}
                   job={job}
                   selected={job.id === selectedJobId}
+                  compared={compareIds.includes(job.id)}
+                  onToggleCompare={onToggleCompare}
                   onAnalyze={onAnalyze}
                 />
               ))}

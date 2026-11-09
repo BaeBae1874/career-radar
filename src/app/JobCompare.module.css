@@ -1,0 +1,552 @@
+/* 색상 변수(--text, --primary 등)는 page.module.css의 .page에서 상속받는다. */
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ───── 하단 고정 비교 바 ───── */
+.bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  background: #fff;
+  border-top: 1px solid var(--border-strong);
+  box-shadow: 0 -4px 16px rgba(25, 31, 40, 0.06);
+}
+
+.barInner {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.barInfo {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+}
+
+.barCount {
+  flex-shrink: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.barCount strong {
+  color: var(--primary);
+}
+
+.barMax {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.barList {
+  list-style: none;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.barList li {
+  display: inline-flex;
+  align-items: center;
+  max-width: 260px;
+  font-size: 13px;
+  color: var(--text-body);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 4px 3px 10px;
+}
+
+.barJob {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barRemove {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.barNotice {
+  flex-basis: 100%;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.barNotice:empty {
+  display: none;
+}
+
+.barActions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+}
+
+.clearButton,
+.compareButton,
+.closeButton {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.clearButton,
+.closeButton {
+  color: var(--text-body);
+  background: #fff;
+  border: 1px solid var(--border-strong);
+}
+
+.compareButton {
+  color: #fff;
+  background: var(--primary);
+  border: 1px solid var(--primary);
+}
+
+.compareButton:disabled {
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+  border-color: var(--border);
+  cursor: not-allowed;
+}
+
+/* ───── 비교 화면 ───── */
+.compare {
+  margin-bottom: 40px;
+  scroll-margin-top: 72px;
+}
+
+.compareHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.compareTitle {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.summary {
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--text-sub);
+}
+
+.closeButton {
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+/* ───── Career Radar 비교 요약 (AI) ───── */
+.ai {
+  margin-top: 20px;
+  border-top: 1px solid var(--text);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 0 18px;
+}
+
+.aiHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aiTitle {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.aiMark {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.aiIdle {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.aiDesc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+
+.aiError {
+  align-self: stretch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #c4320a;
+  background: #fff6f2;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.aiButton {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+  background: #fff;
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.aiButton:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.aiRows {
+  margin-top: 8px;
+}
+
+.aiRow {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 24px;
+  padding: 16px 0;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--text-body);
+}
+
+.aiRow + .aiRow {
+  border-top: 1px solid var(--border);
+}
+
+.aiRow dt {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.aiLead {
+  font-size: 16px;
+  color: var(--text);
+}
+
+.bestFor {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bestForTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.bestForText {
+  margin-top: 2px;
+}
+
+.aiNote {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.common {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 14px 16px;
+  background: var(--bg-subtle);
+  border-radius: 8px;
+}
+
+.commonLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.tags {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tags li {
+  font-size: 12px;
+  color: var(--text-sub);
+  background: var(--bg-subtle);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 3px 8px;
+}
+
+.tags li.tagCommon {
+  color: var(--primary);
+  background: var(--primary-soft);
+  font-weight: 600;
+}
+
+.tableWrap {
+  margin-top: 20px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-top: 1px solid var(--text);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-body);
+}
+
+.table th,
+.table td {
+  padding: 14px 16px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+}
+
+.table td + td,
+.table th + th,
+.table th + td {
+  border-left: 1px solid var(--border);
+}
+
+.labelCell {
+  width: 112px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+  background: var(--bg-subtle);
+}
+
+.jobHead {
+  font-weight: 400;
+}
+
+.company {
+  display: block;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.title {
+  display: block;
+  margin-top: 2px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.deadline {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.lines {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lines li {
+  position: relative;
+  padding-left: 12px;
+}
+
+.lines li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.75em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.none {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.actionRow td {
+  border-bottom: none;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.analyzeButton,
+.linkButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.analyzeButton {
+  color: #fff;
+  background: var(--primary);
+  border: 1px solid var(--primary);
+}
+
+.linkButton {
+  color: var(--text-body);
+  background: #fff;
+  border: 1px solid var(--border-strong);
+}
+
+.clearButton:focus-visible,
+.compareButton:focus-visible,
+.closeButton:focus-visible,
+.aiButton:focus-visible,
+.barRemove:focus-visible,
+.analyzeButton:focus-visible,
+.linkButton:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .compareButton:hover:not(:disabled),
+  .analyzeButton:hover {
+    background: var(--primary-hover);
+  }
+  .clearButton:hover,
+  .closeButton:hover,
+  .linkButton:hover {
+    border-color: var(--text-muted);
+  }
+  .aiButton:hover:not(:disabled) {
+    background: var(--primary-soft);
+  }
+  .barRemove:hover {
+    color: var(--text);
+    background: var(--border);
+  }
+}
+
+/* ───── Mobile ───── */
+@media (max-width: 600px) {
+  .barInner {
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  /* 모바일에서는 공고 목록을 숨기고 개수와 버튼만 */
+  .barList {
+    display: none;
+  }
+  .barActions > button {
+    flex: 1;
+  }
+  .compareTitle {
+    font-size: 21px;
+  }
+  .aiRow {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 14px 0;
+  }
+  .aiButton {
+    align-self: stretch;
+  }
+  /* 비교 표는 가로 스크롤 (항목 열 고정) */
+  .table {
+    width: auto;
+    min-width: 100%;
+  }
+  .table[data-cols="2"] {
+    width: calc(76px + 2 * 220px);
+  }
+  .table[data-cols="3"] {
+    width: calc(76px + 3 * 220px);
+  }
+  .labelCell {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    width: 76px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .table th,
+  .table td {
+    padding: 12px;
+  }
+}

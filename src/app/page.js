@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "./page.module.css";
 import JobSearch from "./JobSearch";
+import { CompareBar, CompareView, MAX_COMPARE } from "./JobCompare";
 
 const INTERESTS = ["마케팅", "기획", "데이터", "개발", "디자인", "금융", "콘텐츠"];
 
@@ -86,6 +87,65 @@ export default function Home() {
   const [selectedJob, setSelectedJob] = useState(null);
   const resultRef = useRef(null);
   const analyzeRef = useRef(null);
+  const [compareJobs, setCompareJobs] = useState([]);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [compareNotice, setCompareNotice] = useState("");
+
+  // 최대 개수 안내는 잠시 보여준 뒤 사라지게
+  useEffect(() => {
+    if (!compareNotice) return;
+    const timer = setTimeout(() => setCompareNotice(""), 3000);
+    return () => clearTimeout(timer);
+  }, [compareNotice]);
+
+  const scrollToId = (id) => {
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
+  const updateCompareJobs = (next) => {
+    setCompareJobs(next);
+    if (next.length < 2) setCompareOpen(false);
+  };
+
+  const toggleCompare = (job) => {
+    if (compareJobs.some((j) => j.id === job.id)) {
+      updateCompareJobs(compareJobs.filter((j) => j.id !== job.id));
+      setCompareNotice("");
+      return;
+    }
+    if (compareJobs.length >= MAX_COMPARE) {
+      setCompareNotice(`공고는 최대 ${MAX_COMPARE}개까지 비교할 수 있어요.`);
+      return;
+    }
+    updateCompareJobs([...compareJobs, job]);
+  };
+
+  const clearCompare = () => {
+    updateCompareJobs([]);
+    setCompareNotice("");
+  };
+
+  const openCompare = () => {
+    if (compareJobs.length < 2) return;
+    setCompareOpen(true);
+    scrollToId("compare-jobs");
+  };
+
+  // 상단 메뉴: 현재 페이지 안에서 이동
+  const goToSearch = () => scrollToId("find-jobs");
+  const goToCompare = () => {
+    if (compareOpen) scrollToId("compare-jobs");
+    else if (compareJobs.length >= 2) openCompare();
+    else scrollToId("find-jobs");
+  };
+  const goToManual = () => {
+    setFormOpen(true);
+    requestAnimationFrame(() => {
+      analyzeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
 
   // 검색 결과에서 고른 공고를 분석 입력칸에 채운다. (OpenRouter 요청은 사용자가 직접 버튼을 눌러야 보냄)
   const handleSelectJob = (job) => {
@@ -155,7 +215,20 @@ export default function Home() {
       <header className={styles.topbar}>
         <div className={styles.topbarInner}>
           <span className={styles.logo}>Career Radar</span>
-          <span className={styles.topbarMeta}>채용공고 분석</span>
+          <nav className={styles.nav} aria-label="주요 메뉴">
+            <button type="button" className={styles.navItem} onClick={goToSearch}>
+              공고 찾기
+            </button>
+            <button type="button" className={styles.navItem} onClick={goToCompare}>
+              공고 비교
+              {compareJobs.length > 0 && (
+                <span className={styles.navBadge}>{compareJobs.length}</span>
+              )}
+            </button>
+            <button type="button" className={styles.navItem} onClick={goToManual}>
+              직접 분석
+            </button>
+          </nav>
         </div>
       </header>
 
@@ -172,7 +245,20 @@ export default function Home() {
           )}
         </section>
 
-        <JobSearch selectedJobId={selectedJob?.id} onAnalyze={handleSelectJob} />
+        <JobSearch
+          selectedJobId={selectedJob?.id}
+          compareIds={compareJobs.map((j) => j.id)}
+          onToggleCompare={toggleCompare}
+          onAnalyze={handleSelectJob}
+        />
+
+        {compareOpen && compareJobs.length >= 2 && (
+          <CompareView
+            jobs={compareJobs}
+            onAnalyze={handleSelectJob}
+            onClose={() => setCompareOpen(false)}
+          />
+        )}
 
         {!showAnalyzeSection && (
           <p className={styles.manualToggle}>
@@ -437,6 +523,20 @@ export default function Home() {
             </p>
           </div>
         </footer>
+      )}
+
+      {compareJobs.length > 0 && (
+        <>
+          {/* 고정 비교 바가 페이지 마지막 내용을 가리지 않도록 여백 확보 */}
+          <div className={styles.barSpacer} aria-hidden="true" />
+          <CompareBar
+            jobs={compareJobs}
+            notice={compareNotice}
+            onRemove={toggleCompare}
+            onClear={clearCompare}
+            onCompare={openCompare}
+          />
+        </>
       )}
     </div>
   );

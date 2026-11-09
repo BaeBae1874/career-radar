@@ -1,3 +1,5 @@
+import { extractSections } from "./sections";
+
 /**
  * 사람인 Open API 승인 전까지 사용하는 샘플 채용공고.
  *
@@ -17,14 +19,20 @@
  *   source: string           // 예: 사람인
  *   originalUrl: string
  *   keywords: string[]
- *   description: string      // 분석 입력으로 들어가는 공고 본문
+ *   description: string      // 분석 입력으로 들어가는 공고 본문 (그대로 유지)
+ *   tasks: string[]          // 비교용: 주요 업무
+ *   required: string[]       // 비교용: 자격요건
+ *   preferred: string[]      // 비교용: 우대사항
  * }
+ *
+ * tasks / required / preferred는 description에서 extractSections()로 자동 생성한다.
+ * (본문과 비교용 필드가 서로 어긋나지 않도록 한 곳에서만 관리)
  *
  * ⚠️ companyType(대기업/중견기업/중소기업/스타트업)은 UI 확인을 위한 샘플 값입니다.
  *    실제 사람인 API 응답에 해당 정보가 없으면 이 필드를 빼면 되고,
  *    프론트엔드는 companyType이 없으면 표시하지 않도록 되어 있습니다.
  */
-export const SAMPLE_JOBS = [
+const RAW_SAMPLE_JOBS = [
   {
     id: "sample-1",
     company: "오렌지커머스",
@@ -177,3 +185,8 @@ export const SAMPLE_JOBS = [
 - 개인 또는 팀 프로젝트를 배포해 본 경험`,
   },
 ];
+
+export const SAMPLE_JOBS = RAW_SAMPLE_JOBS.map((job) => ({
+  ...job,
+  ...extractSections(job.description),
+}));
