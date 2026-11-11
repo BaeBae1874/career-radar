@@ -85,6 +85,33 @@ const RAW_SAMPLE_JOBS = [
 - 금융·핀테크 서비스에 관심이 많으신 분`,
   },
   {
+    id: "sample-7",
+    company: "블루웨이브미디어",
+    title: "콘텐츠 마케터 (신입)",
+    employmentType: "정규직",
+    career: "신입",
+    companyType: "중소기업", // 샘플 전용
+    location: "서울 마포구",
+    deadline: "D-10",
+    source: "사람인",
+    originalUrl: "https://www.saramin.co.kr/",
+    keywords: ["콘텐츠 마케팅", "SNS 운영", "카피라이팅"],
+    description: `주요 업무
+- 브랜드 SNS 콘텐츠를 기획하고 제작합니다.
+- 채널별 콘텐츠 성과를 확인하고 개선합니다.
+- 캠페인용 카피와 이미지 소재 기획에 참여합니다.
+
+자격요건
+- 콘텐츠 기획과 글쓰기에 관심이 있으신 분
+- 기본적인 문서 작성이 가능한 분
+- 포트폴리오 제출 가능하신 분
+
+우대사항
+- SNS 채널 운영 경험
+- 디자인 툴 또는 이미지 편집 경험
+- 브랜드 콘텐츠 제작 경험`,
+  },
+  {
     id: "sample-3",
     company: "블루데이터랩",
     title: "데이터 분석 인턴 (서비스 지표 분석)",

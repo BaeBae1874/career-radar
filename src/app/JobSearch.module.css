@@ -1,12 +1,24 @@
 /* 색상 변수(--text, --primary 등)는 page.module.css의 .page에서 상속받는다. */
 
 .search {
-  margin-bottom: 40px;
-  scroll-margin-top: 72px;
+  margin-bottom: 24px;
+  scroll-margin-top: 76px;
+}
+
+/* 검색 입력 영역: 카드 없이 Hero 바로 아래 */
+.searchBox {
+  padding: 0;
+}
+
+.eyebrow {
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
 }
 
 .heading {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -28,7 +40,7 @@
 }
 
 .searchForm {
-  margin-top: 20px;
+  margin-top: 0;
   display: flex;
   gap: 8px;
 }
@@ -91,30 +103,38 @@
   margin-top: 28px;
 }
 
-.resultsHead {
+.results > .sourceRow {
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
+/* 출처 표시 (나중에 source 값 기준 필터 버튼으로 바꾸기 쉬운 구조) */
+.sourceRow {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 4px 16px;
+  align-items: center;
+  gap: 6px 8px;
+  font-size: 13px;
 }
 
-.count {
-  font-size: 15px;
+.sourceLabel {
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.sourceChip {
   color: var(--text-body);
-}
-
-.countNum {
-  color: var(--primary);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 8px;
 }
 
 .sampleNote {
-  font-size: 13px;
   color: var(--text-muted);
 }
 
 .filters {
-  margin-top: 14px;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -150,53 +170,85 @@
 }
 
 .list {
-  margin-top: 16px;
+  margin-top: 8px;
   list-style: none;
-  border-top: 1px solid var(--text);
+  border-top: 1px solid var(--border-strong);
 }
 
+/* ───── 공고 하나 = 하나의 정보 단위 ───── */
 .card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 22px 4px;
+  padding: 22px 0;
   border-bottom: 1px solid var(--border);
 }
 
-.cardSelected {
-  background: var(--bg-subtle);
-  box-shadow: inset 3px 0 0 var(--primary);
-  padding-left: 16px;
+.card:last-child {
+  border-bottom: 1px solid var(--border);
 }
 
-.cardMain {
-  flex: 1;
+/* 분석 중인 공고: 배경은 그대로, 왼쪽 3px 파란 선만 */
+.card.cardSelected {
+  padding-left: 16px;
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.cardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cardHeadText {
   min-width: 0;
 }
 
-.cardTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+.company {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-sub);
 }
 
+.companyType {
+  color: var(--text-muted);
+}
+
+.companyType::before {
+  content: "·";
+  margin: 0 6px;
+}
+
+.title {
+  margin-top: 4px;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+/* 비교 선택: 제목 오른쪽, 작은 토글 */
 .compareCheck {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  margin-top: 2px;
   font-size: 13px;
   font-weight: 500;
   color: var(--text-sub);
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 6px 10px;
   cursor: pointer;
   user-select: none;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
 .compareCheck input {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   margin: 0;
   accent-color: var(--primary);
   cursor: pointer;
@@ -204,42 +256,18 @@
 
 .compareCheckOn {
   color: var(--primary);
+  background: var(--primary-soft);
+  border-color: var(--primary);
   font-weight: 600;
 }
 
 .compareCheck:has(input:focus-visible) {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
-  border-radius: 4px;
-}
-
-.company {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--text-sub);
-}
-
-.companyType {
-  font-size: 12px;
-  color: var(--text-sub);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 1px 6px;
-}
-
-.title {
-  margin-top: 4px;
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1.45;
-  letter-spacing: -0.01em;
-  color: var(--text);
 }
 
 .meta {
-  margin-top: 6px;
+  margin-top: 8px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -278,6 +306,32 @@
   padding: 3px 8px;
 }
 
+/* 실제로 하게 될 일 — Career Radar만의 정보 */
+.task {
+  margin-top: 14px;
+  padding: 2px 0 2px 12px;
+  border-left: 2px solid var(--primary);
+}
+
+.taskLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.taskText {
+  margin-top: 2px;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--text-body);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
 .source {
   margin-top: 10px;
   font-size: 12px;
@@ -285,16 +339,15 @@
 }
 
 .actions {
-  flex-shrink: 0;
+  margin-top: 16px;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 8px;
-  width: 168px;
 }
 
 .analyzeButton,
 .linkButton {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
@@ -302,7 +355,7 @@
   font-size: 14px;
   font-weight: 600;
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 9px 16px;
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s, border-color 0.15s;
@@ -321,12 +374,12 @@
 }
 
 .empty {
-  margin-top: 16px;
+  margin-top: 8px;
   padding: 40px 16px;
   font-size: 15px;
   text-align: center;
   color: var(--text-sub);
-  border-top: 1px solid var(--text);
+  border-top: 1px solid var(--border-strong);
   border-bottom: 1px solid var(--border);
 }
 
@@ -343,13 +396,13 @@
   .analyzeButton:hover {
     background: var(--primary-hover);
   }
-  .linkButton:hover {
+  .linkButton:hover,
+  .filter:hover,
+  .compareCheck:hover {
     border-color: var(--text-muted);
   }
-  .filter:hover {
-    border-color: var(--text-muted);
-  }
-  .filterActive:hover {
+  .filterActive:hover,
+  .compareCheckOn:hover {
     border-color: var(--primary);
   }
 }
@@ -357,7 +410,10 @@
 /* ───── Mobile ───── */
 @media (max-width: 600px) {
   .heading {
-    font-size: 21px;
+    font-size: 20px;
+  }
+  .card.cardSelected {
+    padding-left: 14px;
   }
   .searchForm {
     flex-direction: column;
@@ -366,24 +422,27 @@
     padding: 14px 24px;
   }
   .card {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-    padding: 20px 0;
+    padding: 22px 0;
   }
-  .cardSelected {
-    padding-left: 12px;
-    padding-right: 4px;
+  .task {
+    padding-left: 10px;
+  }
+  .cardHead {
+    gap: 10px;
   }
   .title {
-    font-size: 16px;
+    font-size: 17px;
   }
-  .actions {
-    width: auto;
-    flex-direction: row;
+  .compareCheck {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+  .taskText {
+    font-size: 14px;
   }
   .analyzeButton,
   .linkButton {
     flex: 1;
+    padding: 11px 12px;
   }
 }

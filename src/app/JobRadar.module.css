@@ -1,0 +1,148 @@
+/* 색상 변수(--text, --primary 등)는 page.module.css의 .page에서 상속받는다. */
+
+/* 검색 현황: 카드 없이 한 흐름으로 (제목·총 건수 → 보조 통계 → 필터 → 키워드·기업유형) */
+.radar {
+  padding: 4px 0 16px;
+}
+
+/* 검색어 · 건수 한 줄 */
+.title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 8px;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.titleSep {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.total {
+  white-space: nowrap;
+}
+
+.totalFilter {
+  font-weight: 600;
+  color: var(--text-body);
+}
+
+/* 결과 건수: 파란 숫자로 가장 먼저 보이게 */
+.totalNum {
+  margin-right: 1px;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 보조 통계: 인턴 1 · 정규직 1 · 계약직 0 · 신입 2 */
+.stats {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: var(--text-sub);
+}
+
+.stat {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.stat + .stat::before {
+  content: "·";
+  margin: 0 8px;
+  color: var(--text-muted);
+}
+
+.stat dd {
+  font-weight: 700;
+  color: var(--text-body);
+  font-variant-numeric: tabular-nums;
+}
+
+.filterSlot {
+  margin-top: 14px;
+}
+
+/* 키워드·기업유형: 라벨 + 텍스트 한 줄씩 */
+.meta {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metaRow {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.metaRow dt {
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.metaRow dd {
+  color: var(--text-body);
+}
+
+.metaKeywords {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.metaKeywords > span + span::before {
+  content: "·";
+  margin: 0 8px;
+  color: var(--text-muted);
+}
+
+.keywordCount {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.metaKeywords > .keywordMore::before {
+  content: "";
+  margin: 0 6px;
+}
+
+.keywordMore {
+  color: var(--text-muted);
+}
+
+/* 기업유형: 작은 보조 정보 */
+.metaSub {
+  font-size: 13px;
+}
+
+.metaSub dt,
+.metaSub dd {
+  color: var(--text-muted);
+}
+
+/* ───── Mobile ───── */
+@media (max-width: 600px) {
+  .title {
+    font-size: 18px;
+  }
+  .totalNum {
+    font-size: 21px;
+  }
+  .metaRow {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}

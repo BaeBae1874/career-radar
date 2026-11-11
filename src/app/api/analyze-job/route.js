@@ -1,9 +1,10 @@
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const MODEL = "openrouter/free";
+import { requestStructured } from "@/lib/openrouter";
+import { polishList, polishText } from "@/lib/polishText";
+
 const MAX_POSTING_LENGTH = 15000;
-const REQUEST_TIMEOUT_MS = 60000;
-// 파싱 실패 시 서버 로그에 남길 AI 응답 앞부분 길이
-const LOG_PREVIEW_LENGTH = 300;
+// 분석 응답은 비교 요약보다 길어 attempt당 45초. 최대 2회 → 최악의 경우 약 90초 안에 종료
+const ATTEMPT_TIMEOUT_MS = 45000;
+const MAX_ATTEMPTS = 2;
 
 const stringArray = { type: "array", items: { type: "string" } };
 
@@ -66,7 +67,13 @@ const SYSTEM_PROMPT = `당신은 채용공고를 분석해 취업 준비생에�
    - 확신하기 어려우면 빈 배열로 둡니다.
 6. 확실하지 않은 정보는 unclearPoints에 넣습니다.
 7. 모든 설명은 한국어로, 초보 취준생도 이해할 수 있게 짧고 쉽게 씁니다.
+   - 결과 문장은 자연스러운 한국어로 씁니다. 불필요한 영어 단어를 섞지 않습니다.
+   - "but", "required", "preferred", "unclear", "versus", "vs" 같은 영어 연결어·상태어는 쓰지 않습니다.
+   - 영어는 CRM, SQL, GA4, ROAS처럼 그 자체가 전문용어(약어)이거나 공고 원문에 적힌 도구·기술명일 때만 씁니다.
+   - 예: ❌ "REQUIRED 수준인지 여부는 unclear." → ✅ "필수 수준으로 요구되는지는 공고만으로 명확하지 않아요."
 8. skills에는 공고에서 확인되는 핵심 업무·기술·도구·역량 키워드(예: A/B 테스트, CRM, 데이터 분석, 스프레드시트)를 짧은 단어로 넣습니다.
+   - 중요한 순서로 넣습니다: ① 실제 업무를 대표하는 키워드 → ② 핵심 역량 → ③ 주요 도구·지표. 화면에는 앞의 6개가 먼저 보여요.
+   - 거의 같은 뜻의 키워드는 하나로 합칩니다. (예: "오픈율", "전환율" → "오픈율·전환율") 공고에 없는 키워드는 만들지 않습니다.
 9. explanationEvidence에는 simpleExplanation의 근거가 된 문장을 채용공고 원문에서 글자 그대로 복사해 1~3개만 넣습니다.
    - 문장을 요약하거나 바꾸거나 새로 만들지 않습니다. 원문에 그대로 존재하는 문장만 넣습니다.
    - 적절한 근거가 없으면 빈 배열로 둡니다.
@@ -156,76 +163,30 @@ function verifyEvidence(list, jobPosting) {
 
 /** 모델 출력이 형식을 조금 벗어나도 화면이 깨지지 않도록 정리한다. */
 function normalizeResult(raw, jobPosting) {
+  // 표시 직전 문장 정리: 영어 filler·깨진 단어만 다듬고, 공고 원문에 있는 표현은 보존
+  // (explanationEvidence는 원문 그대로 검증된 문장, skills는 도구·기술명이라 손대지 않음)
+  const polish = (t) => polishText(t, jobPosting);
   return {
-    jobTitle: isMeaningful(raw.jobTitle) ? raw.jobTitle.trim() : "없음",
+    jobTitle: isMeaningful(raw.jobTitle) ? polish(raw.jobTitle.trim()) : "없음",
     simpleExplanation: isMeaningful(raw.simpleExplanation)
-      ? raw.simpleExplanation.trim()
+      ? polish(raw.simpleExplanation.trim())
       : "",
     explanationEvidence: verifyEvidence(raw.explanationEvidence, jobPosting),
-    actualTasks: toStringList(raw.actualTasks),
+    actualTasks: polishList(toStringList(raw.actualTasks), jobPosting),
     skills: toStringList(raw.skills),
-    required: toStringList(raw.required),
-    preferred: toStringList(raw.preferred),
+    required: polishList(toStringList(raw.required), jobPosting),
+    preferred: polishList(toStringList(raw.preferred), jobPosting),
     similarRoles: Array.isArray(raw.similarRoles)
       ? raw.similarRoles
           .filter((r) => r && isMeaningful(r.name))
           .map((r) => ({
-            name: r.name.trim(),
-            difference: isMeaningful(r.difference) ? r.difference.trim() : "",
+            name: polish(r.name.trim()),
+            difference: isMeaningful(r.difference) ? polish(r.difference.trim()) : "",
           }))
           .slice(0, 3)
       : [],
-    unclearPoints: toStringList(raw.unclearPoints),
+    unclearPoints: polishList(toStringList(raw.unclearPoints), jobPosting),
   };
-}
-
-class UpstreamError extends Error {
-  constructor(message, status) {
-    super(message);
-    this.status = status;
-  }
-}
-
-async function callOpenRouter(apiKey, messages) {
-  let res;
-  try {
-    res = await fetch(OPENROUTER_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "X-Title": "Career Radar",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages,
-        temperature: 0.2,
-        response_format: RESPONSE_FORMAT,
-        // response_format을 지원하는 무료 모델/프로바이더로만 라우팅
-        provider: { require_parameters: true },
-      }),
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    });
-  } catch (err) {
-    if (err?.name === "TimeoutError") {
-      throw new UpstreamError("AI 응답이 너무 오래 걸려요. 잠시 후 다시 시도해 주세요.", 504);
-    }
-    throw new UpstreamError("AI 서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.", 502);
-  }
-
-  if (!res.ok) {
-    console.error("[analyze-job] OpenRouter error", res.status, await res.text().catch(() => ""));
-    if (res.status === 401 || res.status === 403) {
-      throw new UpstreamError("AI 서비스 인증에 실패했어요. 서버 설정을 확인해 주세요.", 500);
-    }
-    if (res.status === 429) {
-      throw new UpstreamError("요청이 많아 잠시 분석할 수 없어요. 조금 뒤 다시 시도해 주세요.", 429);
-    }
-    throw new UpstreamError("AI 분석 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.", 502);
-  }
-
-  const data = await res.json().catch(() => null);
-  return data?.choices?.[0]?.message?.content ?? "";
 }
 
 export async function POST(request) {
@@ -260,36 +221,43 @@ export async function POST(request) {
     { role: "user", content: buildUserPrompt({ interests, keyword, jobPosting }) },
   ];
 
-  try {
-    // 파싱 실패 시 한 번만 재시도
-    const failedPreviews = [];
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const content = await callOpenRouter(apiKey, messages);
+  // 재시도·timeout·로그는 compare-jobs와 같은 공통 로직 사용
+  const outcome = await requestStructured({
+    apiKey,
+    messages,
+    responseFormat: RESPONSE_FORMAT,
+    tag: "analyze-job",
+    timeoutMs: ATTEMPT_TIMEOUT_MS,
+    maxAttempts: MAX_ATTEMPTS,
+    accept: (content) => {
       const parsed = parseModelJson(content);
-      if (parsed) return Response.json({ result: normalizeResult(parsed, jobPosting) });
-      console.warn(`[analyze-job] JSON parse failed (attempt ${attempt + 1})`);
-      failedPreviews.push(content);
-    }
-    // 디버깅용: AI 응답 앞부분만 로그 (API 키·채용공고 원문은 남기지 않음)
-    failedPreviews.forEach((content, i) => {
-      const text = typeof content === "string" ? content : String(content ?? "");
-      console.error(
-        `[analyze-job] raw AI response (attempt ${i + 1}, ${text.length} chars):`,
-        JSON.stringify(text.slice(0, LOG_PREVIEW_LENGTH))
-      );
-    });
+      if (!parsed) return { failure: "parse_failed" };
+      const result = normalizeResult(parsed, jobPosting);
+      // 핵심 필드(30초 설명)가 비어 있으면 형식 실패로 보고 재시도
+      return result.simpleExplanation ? { value: result } : { failure: "schema_failed" };
+    },
+  });
+  if (outcome.ok) return Response.json({ result: outcome.value });
+  return failureResponse(outcome.reason);
+}
+
+// 실패 응답 (형태는 기존과 같은 { error })
+function failureResponse(reason) {
+  if (reason === "auth") {
+    console.error("[analyze-job] OpenRouter authentication failed");
     return Response.json(
-      { error: "AI 응답을 정리하지 못했어요. 다시 한 번 시도해 주세요." },
-      { status: 502 }
-    );
-  } catch (err) {
-    if (err instanceof UpstreamError) {
-      return Response.json({ error: err.message }, { status: err.status });
-    }
-    console.error("[analyze-job] unexpected error", err);
-    return Response.json(
-      { error: "알 수 없는 오류가 발생했어요. 잠시 후 다시 시도해 주세요." },
+      { error: "AI 서비스 인증에 실패했어요. 서버 설정을 확인해 주세요." },
       { status: 500 }
     );
   }
+  if (reason === "rate_limit") {
+    return Response.json(
+      { error: "요청이 많아 잠시 분석할 수 없어요. 조금 뒤 다시 시도해 주세요." },
+      { status: 429 }
+    );
+  }
+  return Response.json(
+    { error: "공고 분석을 불러오지 못했어요. 잠시 후 다시 시도해 주세요." },
+    { status: reason === "timeout" ? 504 : 502 }
+  );
 }

@@ -10,12 +10,18 @@
   --primary: #3b5bdb;
   --primary-hover: #2f4ac0;
   --primary-soft: #eef2ff;
-  --max: 1080px;
+  --max: 1040px; /* 헤더·본문·푸터·하단 비교 바 공통 폭 */
+  /* 레이어: 페이지(거의 흰색) → 핵심 카드(흰색, 꼭 필요한 곳만) → 강조(아주 연한 파랑, 최소한) */
+  --bg-page: #fafbfc;
+  --surface: #ffffff;
+  --bg-accent: #f8faff;
+  --border-accent: #e6ecfa;
+  --radius: 12px;
 
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  background: var(--bg-page);
   color: var(--text);
   font-family: var(--font-geist-sans), "Pretendard", "Apple SD Gothic Neo",
     "Noto Sans KR", "Malgun Gothic", sans-serif;
@@ -27,19 +33,36 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: saturate(180%) blur(8px);
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
 
 .topbarInner {
   max-width: var(--max);
   margin: 0 auto;
-  height: 56px;
+  height: 60px;
   padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
+}
+
+.topbarRight {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.headerMeta {
+  font-size: 13px;
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+
+.headerMeta strong {
+  color: var(--primary);
 }
 
 .logo {
@@ -49,8 +72,8 @@
 }
 
 .nav {
+  align-self: stretch;
   display: flex;
-  align-items: center;
   gap: 4px;
 }
 
@@ -61,16 +84,26 @@
   font: inherit;
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-body);
+  color: var(--text-sub);
   background: none;
   border: none;
-  border-radius: 6px;
-  padding: 8px 10px;
+  /* 현재 메뉴는 헤더 하단에 붙는 파란 밑줄로 표시 */
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 2px 12px 0;
   cursor: pointer;
   white-space: nowrap;
 }
 
+.navItemActive {
+  color: var(--text);
+  font-weight: 700;
+  border-bottom-color: var(--primary);
+}
+
+/* 선택 개수 배지: PC에서는 헤더 보조 텍스트가 대신하므로 모바일에서만 */
 .navBadge {
+  display: none;
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
@@ -85,7 +118,7 @@
 
 .navItem:focus-visible {
   outline: 2px solid var(--primary);
-  outline-offset: 1px;
+  outline-offset: -4px;
 }
 
 /* 하단 고정 비교 바 높이만큼 여백 */
@@ -104,11 +137,11 @@
 
 /* ───── Hero ───── */
 .hero {
-  padding: 64px 0 36px;
+  padding: 32px 0 16px;
 }
 
 .heroTitle {
-  font-size: 40px;
+  font-size: 30px;
   font-weight: 700;
   line-height: 1.35;
   letter-spacing: -0.03em;
@@ -129,17 +162,18 @@
 }
 
 .heroDesc {
-  margin-top: 16px;
-  font-size: 18px;
+  margin-top: 8px;
+  font-size: 16px;
   line-height: 1.6;
   color: var(--text-sub);
 }
 
 /* ───── Analyze (input) ───── */
 .analyze {
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 32px;
+  border-radius: var(--radius);
+  padding: 24px 28px;
 }
 
 .analyzeHead {
@@ -153,13 +187,35 @@
   min-width: 0;
 }
 
-.analyzeHead .textButton {
+.analyzeHead /* AI 분석 실패: 경고색 없이 차분한 안내 */
+.aiFail {
+  align-self: stretch;
+  padding: 12px 14px;
+  background: var(--bg-subtle);
+  border-radius: 8px;
+}
+
+.aiFailTitle {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.aiFailDesc {
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+
+.textButton {
   flex-shrink: 0;
   white-space: nowrap;
 }
 
 .analyzeTitle {
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -177,15 +233,149 @@
   scroll-margin-top: 72px;
 }
 
+/* ───── Analysis 화면 ───── */
+.analysisView {
+  padding-top: 20px;
+}
+
+/* 일반 서비스의 back navigation처럼 */
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: -8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-sub);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.viewHead {
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+/* 분석 화면: "공고 분석"은 작은 라벨, 공고 제목이 가장 크게 (한 번만) */
+.viewEyebrow {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.viewMeta {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 14px;
+  color: var(--text-body);
+}
+
+.viewMeta > span + span::before {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 11px;
+  margin: 0 8px;
+  background: var(--border-strong);
+  vertical-align: -1px;
+}
+
+/* 접힌 "분석할 공고": 한 줄 바 */
+.analyze.analyzeCollapsed {
+  padding: 12px 18px;
+}
+
+.analyzeCollapsed .analyzeTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.analyzeCollapsed .collapsedPreview {
+  margin-top: 2px;
+}
+
+.analyzeCollapsed .collapsedActions {
+  margin-top: 12px;
+  margin-bottom: 4px;
+}
+
+.viewTitle {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.viewDesc {
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+
+.viewCompany {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--text-sub);
+}
+
+.viewJobTitle {
+  margin-top: 2px;
+  font-size: 24px;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.linkButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-body);
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 9px 16px;
+}
+
+.collapsedActions {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.analysisView .result {
+  margin-top: 28px;
+}
+
+/* 검색 공고 분석: 제목 없이 범례만 (제목은 화면 상단에 한 번) */
+.resultHeadCompact {
+  padding-bottom: 12px;
+}
+
+.resultHeadCompact .legend {
+  margin-top: 0;
+}
+
 /* 직접 붙여넣기(보조 기능) 링크 */
 .manualToggle {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 10px;
-  padding: 18px 4px;
+  padding: 16px 0;
   border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
   font-size: 14px;
 }
 
@@ -342,6 +532,8 @@
   transform: rotate(180deg);
 }
 
+.backButton:focus-visible,
+.linkButton:focus-visible,
 .option:focus-visible,
 .submit:focus-visible,
 .textButton:focus-visible {
@@ -360,12 +552,15 @@
 /* ───── Result ───── */
 .result {
   margin-top: 64px;
-  scroll-margin-top: 72px;
+  scroll-margin-top: 76px;
 }
 
 .resultHead {
-  padding-bottom: 28px;
-  border-bottom: 2px solid var(--text);
+  padding-bottom: 20px;
+}
+
+.result > .section:last-child {
+  padding-bottom: 8px;
 }
 
 .resultEyebrow {
@@ -376,7 +571,7 @@
 
 .jobTitle {
   margin-top: 8px;
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1.35;
   letter-spacing: -0.03em;
@@ -436,12 +631,29 @@
   border: 1px solid transparent;
 }
 
+/* 분석 결과 섹션: 제목 아래 선 없이 여백으로 구분 (보고서처럼 선이 반복되지 않게) */
 .section {
-  display: grid;
-  grid-template-columns: 220px 1fr;
-  gap: 32px;
-  padding: 36px 0;
-  border-bottom: 1px solid var(--border);
+  padding-top: 36px;
+}
+
+/* 큰 주제가 바뀌는 곳(업무 → 조건, 공고 정보 → AI 참고 정보)에만 아주 연한 선 */
+.sectionBreak {
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+/* 30초 만에 이해하기: 결과의 핵심 — 연한 배경 + 왼쪽 accent만 (큰 카드 X) */
+.section.sectionLead {
+  padding: 18px 22px 20px;
+  background: var(--bg-accent);
+  border-left: 3px solid var(--primary);
+  border-radius: 0 10px 10px 0;
+}
+
+.section.sectionLead .sectionTitle {
+  margin-bottom: 8px;
+  font-size: 15px;
+  color: var(--primary);
 }
 
 .sectionTitle {
@@ -450,6 +662,7 @@
   align-items: center;
   align-content: flex-start;
   gap: 8px;
+  margin-bottom: 12px;
   font-size: 17px;
   font-weight: 700;
   line-height: 1.5;
@@ -475,7 +688,7 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   font-size: 16px;
   line-height: 1.6;
   color: var(--text-body);
@@ -510,9 +723,9 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 18px 20px;
+  padding: 14px 16px;
   background: var(--bg-subtle);
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .evidenceTitle {
@@ -549,12 +762,19 @@
 }
 
 .condTitle {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
-  color: var(--text-sub);
+  color: var(--text);
 }
 
-/* Chips */
+/* Chips (기본 6개 + 더보기) */
+.chipsWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
 .chips {
   list-style: none;
   display: flex;
@@ -567,75 +787,105 @@
   font-weight: 500;
   color: var(--text-body);
   background: var(--bg-subtle);
-  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 6px 12px;
 }
 
-/* Similar roles */
+/* "+N개 더보기" / "접기": 작은 텍스트 버튼 */
+.moreButton {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+  background: none;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.moreButton:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .moreButton:hover {
+    color: var(--primary);
+  }
+}
+
+/* Similar roles: 표 대신 직무명 + 설명 (선 없이 행 간격으로 구분) */
 .roles {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .role {
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 16px;
-  padding: 14px 0;
-  border-top: 1px solid var(--border);
-}
-
-.role:last-child {
-  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .role dt {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
+  color: var(--text);
 }
 
 .role dd {
   font-size: 15px;
   line-height: 1.6;
-  color: var(--text-body);
+  color: var(--text-sub);
 }
 
-/* Check before applying */
-.checkBox {
-  width: 100%;
-  display: flex;
-  gap: 12px;
-  padding: 18px 20px;
-  background: var(--bg-subtle);
-  border-radius: 10px;
-}
-
-.checkBox > div {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
+/* Check before applying: 박스 없이 작은 info 아이콘 + 짧은 안내 + 확인 항목 2~3개 */
 .infoIcon {
   flex-shrink: 0;
-  margin-top: 2px;
   color: var(--text-muted);
 }
 
 .checkIntro {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.5;
   color: var(--text-sub);
 }
 
-.checkBox .list {
+.checkList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-body);
+}
+
+.checkList li {
+  position: relative;
+  padding-left: 16px;
+}
+
+.checkList li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.72em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-muted);
 }
 
 /* ───── Footer ───── */
 .footer {
   border-top: 1px solid var(--border);
-  background: var(--bg-subtle);
+  background: var(--bg-page);
 }
 
 .footerInner {
@@ -651,9 +901,15 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
+  .backButton:hover {
+    color: var(--text);
+    background: var(--bg-subtle);
+  }
+  .linkButton:hover {
+    border-color: var(--text-muted);
+  }
   .navItem:hover {
-    color: var(--primary);
-    background: var(--primary-soft);
+    color: var(--text);
   }
   .option:hover {
     border-color: var(--text-muted);
@@ -673,9 +929,7 @@
 /* ───── Tablet ───── */
 @media (max-width: 860px) {
   .section {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 28px 0;
+    padding-top: 32px;
   }
 }
 
@@ -689,7 +943,18 @@
   }
   .navItem {
     font-size: 13px;
-    padding: 8px 6px;
+    padding: 2px 6px 0;
+  }
+  .topbarInner {
+    height: 56px;
+    gap: 8px;
+  }
+  /* 모바일: 헤더 보조 텍스트는 숨기고 메뉴 배지로만 */
+  .headerMeta {
+    display: none;
+  }
+  .navBadge {
+    display: inline-block;
   }
   .barSpacer {
     height: 112px;
@@ -701,16 +966,16 @@
     padding-right: 16px;
   }
   .hero {
-    padding: 36px 0 24px;
+    padding: 24px 0 12px;
   }
   .heroTitle {
-    font-size: 28px;
+    font-size: 24px;
   }
   .mobileBreak {
     display: inline;
   }
   .heroDesc {
-    font-size: 16px;
+    font-size: 15px;
   }
   .heroCompact {
     padding: 20px 0 16px;
@@ -719,7 +984,16 @@
     font-size: 18px;
   }
   .analyze {
-    padding: 22px 18px;
+    padding: 20px 16px;
+  }
+  .manualToggle {
+    padding: 14px 0;
+  }
+  .viewTitle {
+    font-size: 24px;
+  }
+  .viewJobTitle {
+    font-size: 20px;
   }
   .submit {
     align-self: stretch;
@@ -744,11 +1018,11 @@
     padding-left: 0;
     margin-left: 0;
     border-left: none;
-    padding-top: 24px;
-    border-top: 1px solid var(--border);
   }
-  .role {
-    grid-template-columns: 1fr;
-    gap: 4px;
+  .section {
+    padding-top: 32px;
+  }
+  .section.sectionLead {
+    padding: 16px 16px 18px;
   }
 }
