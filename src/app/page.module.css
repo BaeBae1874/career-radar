@@ -65,10 +65,30 @@
   color: var(--primary);
 }
 
+/* 로고 = 검색 첫 화면으로 (별도 홈 메뉴 없음) */
 .logo {
+  font: inherit;
   font-size: 18px;
   font-weight: 800;
   letter-spacing: -0.02em;
+  color: var(--text);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 2px 0;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.logo:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .logo:hover {
+    opacity: 0.75;
+  }
 }
 
 .nav {
@@ -123,7 +143,7 @@
 
 /* 하단 고정 비교 바 높이만큼 여백 */
 .barSpacer {
-  height: 96px;
+  height: 100px; /* 고정 비교 바(비교 포인트 한 줄 포함) 높이만큼 */
 }
 
 /* ───── Layout ───── */
@@ -187,7 +207,50 @@
   min-width: 0;
 }
 
-.analyzeHead /* AI 분석 실패: 경고색 없이 차분한 안내 */
+.analyzeHead /* AI 분석 실패 후 다음 행동: primary(다시 시도하기) 아래 작은 outline 버튼 2개 */
+.failActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: -4px;
+}
+
+/* 입력 form 안(항목 간격 28px)에서도 버튼 바로 아래에 붙도록 */
+.form .failActions {
+  margin-top: -16px;
+}
+
+.failAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-body);
+  text-decoration: none;
+  white-space: nowrap;
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.failAction:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .failAction:hover {
+    border-color: var(--text-muted);
+  }
+}
+
+/* AI 분석 실패: 경고색 없이 차분한 안내 */
 .aiFail {
   align-self: stretch;
   padding: 12px 14px;
@@ -718,18 +781,22 @@
 }
 
 /* Evidence */
+/* 원문 근거: 카드 없이 아주 연한 회색 면 + 원문 문장 */
 .evidence {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px 16px;
+  gap: 8px;
+  padding: 12px 14px;
   background: var(--bg-subtle);
   border-radius: 8px;
 }
 
 .evidenceTitle {
-  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-sub);
 }
@@ -738,8 +805,6 @@
   font-size: 15px;
   line-height: 1.6;
   color: var(--text-body);
-  padding-left: 12px;
-  border-left: 3px solid var(--border-strong);
 }
 
 /* Conditions */
@@ -957,7 +1022,7 @@
     display: inline-block;
   }
   .barSpacer {
-    height: 112px;
+    height: 124px;
   }
   .topbarInner,
   .container,

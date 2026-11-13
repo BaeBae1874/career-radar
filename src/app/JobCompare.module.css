@@ -24,7 +24,7 @@
 .barInner {
   max-width: var(--max);
   margin: 0 auto;
-  padding: 14px 24px;
+  padding: 10px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -37,7 +37,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 16px;
+  gap: 4px 14px;
 }
 
 .barCount {
@@ -56,24 +56,83 @@
   color: var(--text-muted);
 }
 
+/* 공고 chip: 항상 한 줄 (펼쳐도 줄바꿈 없이 chip이 줄어들며 말줄임) */
 .barList {
   list-style: none;
+  flex: 1 1 0;
   min-width: 0;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 6px;
 }
 
-.barList li {
+.barList > li {
+  flex: 0 1 auto;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
-  max-width: 260px;
+  max-width: 190px; /* 긴 직무명은 말줄임 */
   font-size: 13px;
   color: var(--text-body);
   background: var(--bg-subtle);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 3px 4px 3px 10px;
+  padding: 1px 2px 1px 8px;
+}
+
+/* 3개 펼친 상태: chip을 조금 더 좁게 */
+.barListExpanded > li {
+  max-width: 172px;
+}
+
+/* "+1" / "접기" 자리: chip 스타일 없이 버튼만 */
+.barList > li.barToggleItem {
+  flex-shrink: 0;
+  max-width: none;
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+.barMoreButton {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 9px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.barFold {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-sub);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  padding: 3px 4px;
+  cursor: pointer;
+}
+
+.barMoreButton:focus-visible,
+.barFold:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .barMoreButton:hover {
+    border-color: var(--text-muted);
+  }
+  .barFold:hover {
+    color: var(--text);
+  }
 }
 
 .barJob {
@@ -94,6 +153,23 @@
   border: none;
   border-radius: 4px;
   cursor: pointer;
+}
+
+/* 비교 포인트: 한 줄, 넘치면 말줄임 (bar 높이가 늘지 않게) */
+.barPoints {
+  flex-basis: 100%;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barPointsLabel {
+  margin-right: 8px;
+  font-weight: 600;
+  color: var(--text-sub);
 }
 
 .barNotice {
@@ -118,7 +194,7 @@
   font-size: 14px;
   font-weight: 600;
   border-radius: 8px;
-  padding: 10px 16px;
+  padding: 9px 16px;
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s, border-color 0.15s;
@@ -304,6 +380,39 @@
   -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow: hidden;
+}
+
+/* 공고별 핵심 포인트: 카드 없이 (테두리·배경 없음), 위아래 여백만 */
+.highlights {
+  margin-top: 28px;
+  padding: 0 4px;
+}
+
+.highlightList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.highlightList li {
+  position: relative;
+  padding-left: 12px;
+}
+
+.highlightList li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--primary);
 }
 
 /* 지원 전 먼저 확인: 체크 표시 목록 (경고 UI 아님) */
@@ -757,10 +866,10 @@
 /* ───── Mobile ───── */
 @media (max-width: 600px) {
   .barInner {
-    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
+    gap: 6px;
   }
   /* 모바일에서는 공고 목록을 숨기고 개수와 버튼만 */
   .barList {

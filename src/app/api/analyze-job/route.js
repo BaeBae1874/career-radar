@@ -2,57 +2,8 @@ import { requestStructured } from "@/lib/openrouter";
 import { polishList, polishText } from "@/lib/polishText";
 
 const MAX_POSTING_LENGTH = 15000;
-// 분석 응답은 비교 요약보다 길어 attempt당 45초. 최대 2회 → 최악의 경우 약 90초 안에 종료
-const ATTEMPT_TIMEOUT_MS = 45000;
-const MAX_ATTEMPTS = 2;
-
-const stringArray = { type: "array", items: { type: "string" } };
-
-// 기존 결과 구조와 동일한 JSON schema (프론트엔드 데이터 구조 그대로)
-const RESPONSE_FORMAT = {
-  type: "json_schema",
-  json_schema: {
-    name: "job_analysis",
-    strict: true,
-    schema: {
-      type: "object",
-      properties: {
-        jobTitle: { type: "string" },
-        simpleExplanation: { type: "string" },
-        explanationEvidence: stringArray,
-        actualTasks: stringArray,
-        skills: stringArray,
-        required: stringArray,
-        preferred: stringArray,
-        similarRoles: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              name: { type: "string" },
-              difference: { type: "string" },
-            },
-            required: ["name", "difference"],
-            additionalProperties: false,
-          },
-        },
-        unclearPoints: stringArray,
-      },
-      required: [
-        "jobTitle",
-        "simpleExplanation",
-        "explanationEvidence",
-        "actualTasks",
-        "skills",
-        "required",
-        "preferred",
-        "similarRoles",
-        "unclearPoints",
-      ],
-      additionalProperties: false,
-    },
-  },
-};
+// 모델별 최대 대기 시간 (OPENROUTER_MODELS 순서: Solar Mini 4 → Gemma free). 분석은 응답이 길어 비교보다 여유. 최악의 경우 약 80초
+const MODEL_TIMEOUTS_MS = [35000, 45000];
 
 const SYSTEM_PROMPT = `당신은 채용공고를 분석해 취업 준비생에게 "이 직무가 실제로 하는 일"을 설명하는 도우미입니다.
 
@@ -78,7 +29,11 @@ const SYSTEM_PROMPT = `당신은 채용공고를 분석해 취업 준비생에�
    - 문장을 요약하거나 바꾸거나 새로 만들지 않습니다. 원문에 그대로 존재하는 문장만 넣습니다.
    - 적절한 근거가 없으면 빈 배열로 둡니다.
 
-출력은 아래 형태의 JSON 객체 하나만 출력합니다. 설명 문장이나 코드블록을 붙이지 마세요.
+출력 형식 (반드시 지킬 것):
+- 응답 전체가 아래 구조의 JSON 객체 하나여야 합니다. 첫 글자는 "{", 마지막 글자는 "}"입니다.
+- JSON 앞뒤에 인사말, 설명, 마크다운, 코드블록(\`\`\`)을 절대 붙이지 않습니다.
+- 아래의 모든 키를 빠짐없이, 키 이름 그대로 씁니다. 키를 추가하거나 이름을 바꾸지 않습니다.
+- 문자열은 큰따옴표로 감싸고, 배열 필드는 내용이 없어도 빈 배열 []로 둡니다.
 {
   "jobTitle": "공고에서 파악한 직무명",
   "simpleExplanation": "이 직무를 초보 취준생도 이해할 수 있게 한두 문장으로 설명",
@@ -103,7 +58,7 @@ ${keyword || "입력 안 함"}
 ${jobPosting}
 """
 
-위 채용공고 원문만 근거로 분석해 JSON 객체 하나만 출력하세요.`;
+위 채용공고 원문만 근거로 분석해 JSON 객체 하나만 출력하세요. JSON 외의 글자는 한 글자도 쓰지 마세요.`;
 }
 
 /** 모델 출력에서 JSON 객체를 꺼낸다. 실패하면 null. */
@@ -225,10 +180,8 @@ export async function POST(request) {
   const outcome = await requestStructured({
     apiKey,
     messages,
-    responseFormat: RESPONSE_FORMAT,
     tag: "analyze-job",
-    timeoutMs: ATTEMPT_TIMEOUT_MS,
-    maxAttempts: MAX_ATTEMPTS,
+    timeoutsMs: MODEL_TIMEOUTS_MS,
     accept: (content) => {
       const parsed = parseModelJson(content);
       if (!parsed) return { failure: "parse_failed" };

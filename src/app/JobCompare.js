@@ -2,8 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import styles from "./JobCompare.module.css";
+import { getComparePoints, getPostingHighlights } from "@/lib/jobInsights";
+import { recordRecent } from "./recentStore";
 
 export const MAX_COMPARE = 3;
+const BAR_VISIBLE_JOBS = 2; // 하단 바에 제목 chip으로 보여 줄 공고 수
 
 // 공백·대소문자 차이를 무시하고 키워드 비교 ("데이터분석" = "데이터 분석")
 const keyOf = (k) => String(k).replace(/\s+/g, "").toLowerCase();
@@ -22,11 +25,89 @@ export function getCommonKeywords(jobs) {
   });
 }
 
+/** 하단 바의 공고 chip (+N은 같은 줄 안에서 펼침/접기 — 새 줄을 만들지 않음) */
+function BarChips({ jobs, onRemove }) {
+  const [expanded, setExpanded] = useState(false);
+  const listRef = useRef(null);
+  const hiddenCount = Math.max(0, jobs.length - BAR_VISIBLE_JOBS);
+  // 선택이 2개 이하가 되면 자동으로 접힌 상태 (다시 3개가 돼도 +1부터)
+  const [prevHidden, setPrevHidden] = useState(hiddenCount);
+  if (prevHidden !== hiddenCount) {
+    setPrevHidden(hiddenCount);
+    if (hiddenCount === 0) setExpanded(false);
+  }
+  const isExpanded = expanded && hiddenCount > 0;
+  const visible = isExpanded ? jobs : jobs.slice(0, BAR_VISIBLE_JOBS);
+
+  // 펼친 상태: bar 바깥 클릭·Escape로 접기
+  useEffect(() => {
+    if (!isExpanded) return;
+    const onPointerDown = (e) => {
+      if (!listRef.current?.contains(e.target)) setExpanded(false);
+    };
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setExpanded(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isExpanded]);
+
+  return (
+    <ul ref={listRef} className={`${styles.barList} ${isExpanded ? styles.barListExpanded : ""}`}>
+      {visible.map((job) => (
+        <li key={job.id}>
+          <span className={styles.barJob} title={`${job.company} ${job.title}`}>
+            {job.company} {job.title}
+          </span>
+          <button
+            type="button"
+            className={styles.barRemove}
+            onClick={() => onRemove(job)}
+            aria-label={`${job.company} ${job.title} 선택 해제`}
+          >
+            ×
+          </button>
+        </li>
+      ))}
+      {hiddenCount > 0 && (
+        <li className={styles.barToggleItem}>
+          {isExpanded ? (
+            <button
+              type="button"
+              className={styles.barFold}
+              aria-expanded="true"
+              onClick={() => setExpanded(false)}
+            >
+              접기
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={styles.barMoreButton}
+              aria-expanded="false"
+              aria-label={`선택한 공고 ${hiddenCount}개 더 보기`}
+              onClick={() => setExpanded(true)}
+            >
+              +{hiddenCount}
+            </button>
+          )}
+        </li>
+      )}
+    </ul>
+  );
+}
+
 /** 화면 아래 고정 비교 바 */
 // fromPreviousSearch: 현재 검색 결과가 0건인데 선택이 남아 있을 때 (문구만 바뀜)
 export function CompareBar({ jobs, notice, fromPreviousSearch = false, onRemove, onClear, onCompare }) {
   if (!jobs.length) return null;
   const canCompare = jobs.length >= 2;
+  // 선택한 공고끼리 값이 다른 항목 (AI 없이 단순 비교, 최대 3개)
+  const points = canCompare ? getComparePoints(jobs) : [];
   return (
     <div className={styles.bar} role="region" aria-label="비교할 공고">
       <div className={styles.barInner}>
@@ -43,23 +124,14 @@ export function CompareBar({ jobs, notice, fromPreviousSearch = false, onRemove,
               </>
             )}
           </p>
-          <ul className={styles.barList}>
-            {jobs.map((job) => (
-              <li key={job.id}>
-                <span className={styles.barJob}>
-                  {job.company} {job.title}
-                </span>
-                <button
-                  type="button"
-                  className={styles.barRemove}
-                  onClick={() => onRemove(job)}
-                  aria-label={`${job.company} ${job.title} 선택 해제`}
-                >
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
+          {/* 3개 선택 시 앞의 2개만 제목 chip + "+1" (누르면 같은 줄에서 세 번째 chip 펼침, 선택 데이터는 그대로 3개) */}
+          <BarChips jobs={jobs} onRemove={onRemove} />
+          {points.length > 0 && (
+            <p className={styles.barPoints}>
+              <span className={styles.barPointsLabel}>비교 포인트</span>
+              {points.join(" · ")}
+            </p>
+          )}
           <p className={styles.barNotice} role="status">
             {notice || (!canCompare ? "공고를 1개 더 선택하면 비교할 수 있어요." : "")}
           </p>
@@ -314,6 +386,41 @@ function RequiredCheck({ jobs }) {
   );
 }
 
+/**
+ * 공고별 핵심 포인트: 선택한 공고 중 "이 공고에만 있는" 근무형태·필수조건·키워드·우대 도구 (최대 3개, AI 없음)
+ * 카드 없이 열만 나눠서 (모바일은 세로 + 얇은 구분선)
+ */
+function PostingHighlights({ jobs }) {
+  const highlights = getPostingHighlights(jobs);
+  return (
+    <section className={styles.highlights} aria-labelledby="highlights-title">
+      <h2 id="highlights-title" className={styles.factTitle}>
+        공고별 핵심 포인트
+      </h2>
+      <div className={styles.factGrid} data-cols={jobs.length}>
+        {jobs.map((j, i) => {
+          const points = highlights[i]?.points ?? [];
+          return (
+            <div key={j.id} className={styles.factCol}>
+              <p className={styles.factCompany}>{j.company}</p>
+              <p className={styles.factJobSmall}>{j.title}</p>
+              {points.length ? (
+                <ul className={styles.highlightList}>
+                  {points.map((p) => (
+                    <li key={p.text}>{p.text}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className={styles.none}>뚜렷한 고유 조건 없음</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 const isNonEmpty = (t) => typeof t === "string" && t.trim() !== "";
 
 /** 선택한 공고 나란히 비교 */
@@ -328,6 +435,7 @@ export function CompareView({
   const titleRef = useRef(null);
   // 상세 비교표: 위에서 핵심을 먼저 보고 필요할 때만 펼치도록 기본 접힘 (client state만, 저장하지 않음)
   const [tableOpen, setTableOpen] = useState(false);
+
 
   // 비교 화면이 보일 때마다 제목으로 포커스 이동 (스크린리더·키보드 사용자도 화면 전환을 알 수 있게)
   // (분석 화면에 다녀와도 AI 비교 결과가 유지되도록 숨김 상태로 마운트되어 있음)
@@ -348,7 +456,9 @@ export function CompareView({
       render: (j) => <span className={styles.deadline}>{j.deadline || "-"}</span>,
     },
     // 기업유형은 데이터가 있을 때만 (현재는 샘플 값)
-    ...(hasCompanyType ? [{ label: "기업유형", render: (j) => j.companyType || "-" }] : []),
+    ...(hasCompanyType
+      ? [{ label: "기업유형", render: (j) => j.companyType || "-" }]
+      : []),
     {
       label: "핵심 키워드",
       render: (j) =>
@@ -382,9 +492,10 @@ export function CompareView({
         <p className={styles.summary}>{jobs.length}개의 공고를 비교하고 있어요.</p>
       </div>
 
-      {/* 정보 순서: 30초 비교 → 지원 전 먼저 확인 → AI 비교 요약 → 공통 키워드 → 상세 비교표 */}
+      {/* 정보 순서: 30초 비교 → 지원 전 먼저 확인 → 공고별 핵심 포인트 → AI 비교 요약 → 공통 키워드 → 상세 비교표 */}
       <QuickCompare jobs={jobs} />
       <RequiredCheck jobs={jobs} />
+      <PostingHighlights jobs={jobs} />
 
       {/* 선택 공고가 바뀌면 key가 바뀌어 기존 AI 비교 결과가 초기화된다 */}
       <CompareSummary
@@ -473,6 +584,7 @@ export function CompareView({
                           <a
                             className={styles.linkButton}
                             href={j.originalUrl}
+                            onClick={() => recordRecent(j)}
                             target="_blank"
                             rel="noopener noreferrer"
                           >

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./page.module.css";
 import JobSearch, { EMPLOYMENT_FILTERS } from "./JobSearch";
 import { loadSession, patchSession } from "./sessionStore";
+import { recordRecent } from "./recentStore";
 import { CompareBar, CompareView, MAX_COMPARE } from "./JobCompare";
 
 const INTERESTS = ["마케팅", "기획", "데이터", "개발", "디자인", "금융", "콘텐츠"];
@@ -293,6 +294,8 @@ export default function Home() {
           query: isStr(search.query) ? search.query : "",
           searchedKeyword,
           filter: EMPLOYMENT_FILTERS.includes(search.filter) ? search.filter : "전체",
+          // 결과 페이지 (범위 밖이면 JobSearch에서 마지막 페이지로 보정)
+          page: Number.isInteger(search.page) && search.page > 0 ? search.page : 1,
           jobs: listData?.jobs ?? null,
           isSample: Boolean(listData?.isSample),
         });
@@ -492,6 +495,18 @@ export default function Home() {
   // compare → search
   const backToList = () => restoreView("search");
 
+  // 로고 → 검색 첫 화면 (검색어·필터·페이지·검색 결과만 초기화)
+  // 유지: 비교 선택(compareJobs)·AI 비교 결과·분석 상태·최근 본 공고(localStorage)
+  const goHome = () => {
+    setInitialSearch(null); // 빈 검색 상태로
+    setSearchMountKey((k) => k + 1); // JobSearch를 새로 시작 → 마운트 후 빈 검색 상태가 sessionStorage에 저장됨
+    setCompareNotice("");
+    switchView("search", 0);
+    // 이미 맨 위라 scroll 이벤트가 없어도 다음 복원 위치가 첫 화면 맨 위가 되도록
+    scrollPositions.current.search = 0;
+    patchSession({ scroll: { ...scrollPositions.current } });
+  };
+
   // analysis → 들어온 화면으로
   const backFromAnalysis = () =>
     analysisFrom === "compare" && canCompare ? restoreView("compare") : restoreView("search");
@@ -540,6 +555,7 @@ export default function Home() {
   // 검색 결과/비교표에서 고른 공고 → analysis 화면
   // 공고 내용은 입력칸에 채워 두고, OpenRouter 요청은 사용자가 분석 버튼을 눌러야 보낸다
   const handleSelectJob = (job, from = "search") => {
+    recordRecent(job); // "Career Radar 분석"을 누른 공고 → 최근 본 공고 (localStorage, sessionStorage와 별개)
     if (selectedJob?.id !== job.id || analysisFrom === "manual") {
       resetAnalysis();
       setSelectedJob(job);
@@ -601,6 +617,27 @@ export default function Home() {
     }
   };
 
+  // AI 분석 실패 시 다음 행동: 원문 보기(기존 originalUrl 그대로) · 검색 목록으로 (선택·분석 상태는 유지)
+  const failOriginalUrl = !isManual ? selectedJob?.originalUrl : "";
+  const failActions = (
+    <div className={styles.failActions}>
+      {failOriginalUrl && (
+        <a
+          className={styles.failAction}
+          href={failOriginalUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => recordRecent(selectedJob)}
+        >
+          원문 공고 보기 <span aria-hidden="true">↗</span>
+        </a>
+      )}
+      <button type="button" className={styles.failAction} onClick={() => restoreView("search")}>
+        다른 공고와 비교하기
+      </button>
+    </div>
+  );
+
   const showForm = formOpen;
   // 화면에 보이는 공고 제목: 원본 공고 title → 사용자가 입력한 제목 → AI jobTitle 순
   // (AI jobTitle이 원본 제목을 덮어쓰지 않도록)
@@ -622,7 +659,14 @@ export default function Home() {
     <div className={styles.page}>
       <header className={styles.topbar}>
         <div className={styles.topbarInner}>
-          <span className={styles.logo}>Career Radar</span>
+          <button
+            type="button"
+            className={styles.logo}
+            onClick={goHome}
+            aria-label="Career Radar 검색 첫 화면으로"
+          >
+            Career Radar
+          </button>
           <div className={styles.topbarRight}>
             {/* 기존 선택 개수만 보조로 표시 (search 화면, PC에서만) */}
             {view === "search" && compareJobs.length > 0 && (
@@ -757,7 +801,8 @@ export default function Home() {
                       href={selectedJob.originalUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                    >
+                    
+                      onClick={() => recordRecent(selectedJob)}>
                       원문 공고 보기 <span aria-hidden="true">↗</span>
                     </a>
                   )}
@@ -809,6 +854,7 @@ export default function Home() {
                   >
                     {loading ? "채용공고 분석 중..." : aiFail ? "다시 시도하기" : "채용공고 분석하기"}
                   </button>
+                  {aiFail && !loading && failActions}
                 </div>
               )}
 
@@ -906,6 +952,7 @@ export default function Home() {
                   >
                     {loading ? "채용공고 분석 중..." : aiFail ? "다시 시도하기" : "채용공고 분석하기"}
                   </button>
+                  {aiFail && !loading && failActions}
                 </form>
               )}
             </section>
@@ -944,7 +991,8 @@ export default function Home() {
                     <p className={styles.empty}>{EMPTY_TEXT}</p>
                   )}
 
-                  {result.explanationEvidence?.length > 0 ? (
+                  {/* 원문 근거: 서버가 공고 원문과 대조해 검증한 explanationEvidence만 그대로 표시 (없으면 버튼도 숨김) */}
+                  {result.explanationEvidence?.length > 0 && (
                     <>
                       <button
                         type="button"
@@ -953,22 +1001,22 @@ export default function Home() {
                         aria-controls="evidence"
                         onClick={() => setEvidenceOpen((v) => !v)}
                       >
-                        왜 이렇게 해석했나요?
+                        원문 근거 보기
                         <Chevron open={evidenceOpen} />
                       </button>
                       {evidenceOpen && (
                         <div id="evidence" className={styles.evidence}>
-                          <p className={styles.evidenceTitle}>공고 원문 근거</p>
+                          <p className={styles.evidenceTitle}>
+                            원문 근거 <SourceMark />
+                          </p>
                           {result.explanationEvidence.map((t, i) => (
                             <blockquote key={i} className={styles.quote}>
-                              {t}
+                              “{t}”
                             </blockquote>
                           ))}
                         </div>
                       )}
                     </>
-                  ) : (
-                    <p className={styles.muted}>이 해석과 바로 연결되는 원문 문장은 찾지 못했어요.</p>
                   )}
                 </Section>
 
@@ -1037,8 +1085,9 @@ export default function Home() {
         </footer>
       )}
 
-      {/* 하단 선택 바는 search 화면에서만 (compare·analysis에서는 숨김, 선택 상태는 유지) */}
-      {view === "search" && compareJobs.length > 0 && (
+      {/* 하단 선택 바는 search 화면의 검색 결과가 있을 때만 (compare·analysis·검색 전 홈에서는 숨김, 선택 상태는 유지) */}
+      {/* 검색 전 첫 화면(resultCount === null)에서는 숨김 — 선택 자체는 유지되고 상단 "비교 선택 N개"로 확인 가능 */}
+      {view === "search" && compareJobs.length > 0 && resultCount !== null && (
         <>
           {/* 고정 비교 바가 페이지 마지막 내용을 가리지 않도록 여백 확보 */}
           <div className={styles.barSpacer} aria-hidden="true" />

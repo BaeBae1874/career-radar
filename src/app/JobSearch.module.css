@@ -88,6 +88,142 @@
   cursor: wait;
 }
 
+/* 직무 바로가기: 검색창보다 약하게, 작은 outline chip (줄바꿈 자연스럽게) */
+.shortcuts {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.shortcutsLabel {
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.shortcutList {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.shortcut {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-body);
+  background: var(--surface, #fff);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.shortcut:disabled {
+  cursor: wait;
+}
+
+.shortcutActive {
+  color: var(--primary);
+  border-color: var(--primary);
+  font-weight: 600;
+}
+
+.shortcut:focus-visible,
+.recentItem:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* 최근 본 공고: 카드 없이 얇은 구분선 리스트 */
+.recent {
+  margin-top: 28px;
+}
+
+.recentTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.recentList {
+  list-style: none;
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.recentList li {
+  border-bottom: 1px solid var(--border);
+}
+
+.recentItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 12px 2px;
+  cursor: pointer;
+}
+
+.recentText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.recentCompany {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.recentJob {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recentAction {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+/* 핵심 체크 포인트: 키워드(회색 채움)와 구분되는 흰 바탕 + 얇은 테두리 */
+.checks {
+  margin-top: 10px;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.checks li {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-body);
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+.checks + .keywords {
+  margin-top: 6px;
+}
+
 .error {
   margin-top: 12px;
   font-size: 14px;
@@ -101,6 +237,70 @@
 /* ───── Results ───── */
 .results {
   margin-top: 28px;
+  scroll-margin-top: 76px; /* 페이지 이동 시 고정 헤더 아래로 */
+}
+
+/* ───── Pagination: 카드 없이 가운데 정렬, 현재 페이지만 restrained blue ───── */
+.pagination {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.pageList {
+  list-style: none;
+  display: flex;
+  gap: 4px;
+}
+
+.pageNumber,
+.pageArrow {
+  min-width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-body);
+  background: #fff;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0 8px;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.pageArrow {
+  color: var(--text-sub);
+  border-color: var(--border);
+}
+
+.pageArrow:disabled {
+  color: var(--border-strong);
+  cursor: default;
+}
+
+.pageCurrent {
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  font-weight: 700;
+  cursor: default;
+}
+
+.arrowNarrow {
+  display: none;
+}
+
+.pageNumber:focus-visible,
+.pageArrow:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .results > .sourceRow {
@@ -396,6 +596,20 @@
   .analyzeButton:hover {
     background: var(--primary-hover);
   }
+  .pageNumber:not(.pageCurrent):hover,
+  .pageArrow:hover:not(:disabled) {
+    border-color: var(--border-strong);
+  }
+  .shortcut:hover:not(:disabled) {
+    border-color: var(--text-muted);
+  }
+  .shortcutActive:hover:not(:disabled) {
+    border-color: var(--primary);
+  }
+  .recentItem:hover .recentJob,
+  .recentItem:hover .recentAction {
+    color: var(--primary);
+  }
   .linkButton:hover,
   .filter:hover,
   .compareCheck:hover {
@@ -409,6 +623,17 @@
 
 /* ───── Mobile ───── */
 @media (max-width: 600px) {
+  .pageHideMobile {
+    display: none;
+  }
+  .arrowWide {
+    display: none;
+  }
+  .arrowNarrow {
+    display: inline;
+    font-size: 18px;
+    line-height: 1;
+  }
   .heading {
     font-size: 20px;
   }
