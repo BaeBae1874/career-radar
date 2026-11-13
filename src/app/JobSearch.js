@@ -6,6 +6,7 @@ import JobRadar from "./JobRadar";
 import { patchSession } from "./sessionStore";
 import { getCheckPoints } from "@/lib/jobInsights";
 import { getPageNumbers, paginate } from "@/lib/pagination";
+import { getSourceLabel, hasSaraminSource, matchesEmploymentFilter } from "@/lib/postingMeta";
 import {
   getRecentServerSnapshot,
   getRecentSnapshot,
@@ -161,7 +162,9 @@ function JobCard({ job, selected, compared, showSource, onToggleCompare, onAnaly
         </div>
       )}
 
-      {showSource && job.source && <p className={styles.source}>출처 {job.source}</p>}
+      {showSource && getSourceLabel(job.source) && (
+        <p className={styles.source}>출처 {getSourceLabel(job.source)}</p>
+      )}
 
       <div className={styles.actions}>
         <button type="button" className={styles.analyzeButton} onClick={() => onAnalyze(job)}>
@@ -260,10 +263,10 @@ export default function JobSearch({
     }
   };
 
-  const countOf = (f) =>
-    f === "전체" ? jobs.length : jobs.filter((j) => j.employmentType === f).length;
+  // 근무형태: 실제 고용 형태 기준 분류 ("계약직 (정규직 전환가능)"은 계약직만). 샘플은 employmentType으로 fallback
+  const countOf = (f) => jobs.filter((j) => matchesEmploymentFilter(j, f)).length;
   const visibleJobs =
-    jobs && (filter === "전체" ? jobs : jobs.filter((j) => j.employmentType === filter));
+    jobs && jobs.filter((j) => matchesEmploymentFilter(j, filter));
   // 통계(JobRadar)는 visibleJobs 전체 기준, 목록만 현재 페이지 10개
   const paged = visibleJobs ? paginate(visibleJobs, page) : null;
 
@@ -280,7 +283,8 @@ export default function JobSearch({
     });
   };
   // 출처 목록: 지금은 표시만, 실제 출처가 여러 개 붙으면 이 값으로 필터 버튼을 만들면 된다
-  const sources = jobs ? [...new Set(jobs.map((j) => j.source).filter(Boolean))] : [];
+  // 화면에는 내부 코드("saramin") 대신 표시 이름("사람인")
+  const sources = jobs ? [...new Set(jobs.map((j) => getSourceLabel(j.source)).filter(Boolean))] : [];
 
   return (
     <section id="find-jobs" className={styles.search} aria-labelledby="search-title">
@@ -361,6 +365,15 @@ export default function JobSearch({
               ))
             )}
           </p>
+
+          {/* 사람인 실데이터(source === "saramin")가 있을 때만 출처 표기. 샘플 데이터만 쓰는 지금은 표시되지 않음 */}
+          {hasSaraminSource(jobs) && (
+            <p className={styles.attribution}>
+              <a href="https://www.saramin.co.kr" target="_blank" rel="noopener noreferrer">
+                Powered by 취업 사람인
+              </a>
+            </p>
+          )}
 
           {/* 현재 필터로 보이는 공고 기준 요약 (필터를 바꾸면 다시 계산됨) */}
           {jobs.length > 0 && (

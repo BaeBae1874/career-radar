@@ -10,13 +10,15 @@ const normalize = (v) => String(v ?? "").replace(/\s+/g, "").toLowerCase();
  *
  * 지금은 샘플 데이터를 회사명 / 공고명 / keywords 기준으로 필터링해 반환한다.
  *
- * TODO(사람인 API 승인 후): 이 함수 내부만 교체하면 된다.
- *   1. .env.local 에 SARAMIN_API_KEY 추가
- *   2. 여기서 process.env.SARAMIN_API_KEY 로 사람인 채용공고 API를 서버에서 호출
- *   3. 응답을 sampleJobs.js 상단에 정리한 Job 구조로 변환해 반환
- *      (companyType 정보가 없으면 필드를 빼면 된다.
- *       비교용 tasks/required/preferred는 sections.js의 extractSections(description)로 만들 수 있다)
- *   프론트엔드는 GET /api/jobs?keyword=... 의 { jobs } 응답만 사용하므로 수정할 필요가 없다.
+ * TODO(사람인 API 승인 후): 이 함수 내부만 교체하면 된다. (승인 전에는 절대 사람인을 호출하지 않음)
+ *   1. .env.local 에 SARAMIN_API_KEY 추가 (키가 있을 때만 사람인 호출, 없으면 지금처럼 SAMPLE_JOBS)
+ *   2. 서버에서 사람인 Job Search API 호출 (access-key는 서버에서만, 클라이언트로 내보내지 않음)
+ *   3. 응답을 src/lib/saraminMapper.js 의 mapSaraminJobs(response)로 변환해 반환
+ *      → id·company·title·employmentType·career·location·deadline·keywords·originalUrl 등
+ *        기존 UI field 이름 그대로 나온다.
+ *      사람인 응답에는 상세 본문이 없어 description·tasks·required·preferred는 빈 값으로 온다. (추측해서 만들지 않음)
+ *   4. 아래 GET 응답의 isSample을 false로 (화면의 "샘플 데이터" 표시가 사라짐)
+ *   프론트엔드는 GET /api/jobs?keyword=... 의 { jobs } 응답만 사용한다.
  */
 async function fetchJobs(keyword) {
   const q = normalize(keyword);

@@ -6,6 +6,8 @@
  *       애매하면 아무것도 만들지 않는다. (잘못된 정보보다 표시하지 않는 쪽을 택함)
  */
 
+import { getEmploymentCategories } from "./postingMeta.js";
+
 const MAX_CHECK_POINTS = 2;
 const MAX_COMPARE_POINTS = 3;
 
@@ -78,8 +80,10 @@ export function getPreferredTools(job) {
 export function getCheckPoints(job) {
   if (!job) return [];
   const points = [...getRequiredPoints(job)];
-  if ((job.employmentType === "인턴" || job.employmentType === "계약직") && !points.includes(job.employmentType)) {
-    points.push(job.employmentType);
+  // 근무형태: 검색 필터와 같은 분류(postingMeta) 사용 → 사람인 "인턴직 (정규직 전환가능)"도 "인턴"
+  //           정규직은 표시하지 않고, 파견직·프리랜서 등 분류되지 않는 값도 표시하지 않음
+  for (const category of getEmploymentCategories(job)) {
+    if ((category === "인턴" || category === "계약직") && !points.includes(category)) points.push(category);
   }
   const [tool] = getPreferredTools(job);
   if (tool) points.push(`${tool} 우대`);

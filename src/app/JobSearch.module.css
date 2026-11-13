@@ -330,6 +330,22 @@
   padding: 2px 8px;
 }
 
+/* 사람인 실데이터일 때만 보이는 출처 표기 */
+.attribution {
+  margin: -4px 0 10px;
+  padding: 0 4px;
+  font-size: 12px;
+}
+
+.attribution a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.attribution a:hover {
+  text-decoration: underline;
+}
+
 .sampleNote {
   color: var(--text-muted);
 }

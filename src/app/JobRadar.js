@@ -1,4 +1,5 @@
 import styles from "./JobRadar.module.css";
+import { matchesEmploymentFilter } from "@/lib/postingMeta";
 
 const TOP_KEYWORDS = 5;
 const COMPANY_TYPE_ORDER = ["대기업", "중견기업", "중소기업", "스타트업"];
@@ -47,9 +48,10 @@ export function summarizeJobs(jobs) {
   return {
     stats: [
       { label: "검색 결과", value: jobs.length, total: true },
-      { label: "인턴", value: count((j) => j.employmentType === "인턴") },
-      { label: "정규직", value: count((j) => j.employmentType === "정규직") },
-      { label: "계약직", value: count((j) => j.employmentType === "계약직") },
+      // 필터 버튼과 같은 기준 (사람인 "인턴직 (정규직 전환가능)" → 인턴)
+      { label: "인턴", value: count((j) => matchesEmploymentFilter(j, "인턴")) },
+      { label: "정규직", value: count((j) => matchesEmploymentFilter(j, "정규직")) },
+      { label: "계약직", value: count((j) => matchesEmploymentFilter(j, "계약직")) },
       { label: "신입", value: count((j) => j.career === "신입") },
     ],
     topKeywords,

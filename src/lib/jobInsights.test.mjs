@@ -201,3 +201,26 @@ test("중복 제거 / 고유 포인트 없으면 빈 배열 / 1개 이하는 비
   assert.deepEqual(same.map(texts), [[], []]);
   assert.deepEqual(getPostingHighlights([P({ id: "a", keywords: ["CRM"] })]).map(texts), [[]]);
 });
+
+// ───── 카드 체크 포인트: 사람인 근무형태 값 (검색 필터와 같은 분류) ─────
+test("사람인 인턴직/계약직 값 → '인턴' / '계약직' 체크 포인트", () => {
+  const cp = (employmentTypes) => getCheckPoints({ employmentTypes, required: [], preferred: [] });
+  assert.deepEqual(cp(["인턴직"]), ["인턴"]);
+  assert.deepEqual(cp(["인턴직 (정규직 전환가능)"]), ["인턴"]);
+  assert.deepEqual(cp(["계약직"]), ["계약직"]);
+  assert.deepEqual(cp(["계약직 (정규직 전환가능)"]), ["계약직"]);
+});
+
+test("정규직 (수습기간)·파견직·프리랜서는 근무형태 체크 포인트 없음", () => {
+  const cp = (employmentTypes) => getCheckPoints({ employmentTypes, required: [], preferred: [] });
+  assert.deepEqual(cp(["정규직 (수습기간)"]), []);
+  assert.deepEqual(cp(["파견직"]), []);
+  assert.deepEqual(cp(["프리랜서"]), []);
+});
+
+test("근무 기간·우대 도구와 함께여도 순서·최대 2개 유지", () => {
+  assert.deepEqual(
+    getCheckPoints({ employmentTypes: ["인턴직 (정규직 전환가능)"], required: ["6개월 근무 가능"], preferred: ["SQL"] }),
+    ["6개월 근무", "인턴"]
+  );
+});
