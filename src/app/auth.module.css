@@ -1,0 +1,520 @@
+/* 색상 변수(--text, --primary 등)는 page.module.css의 .page에서 상속받는다. */
+
+/* ───── 헤더 계정 영역 ───── */
+.loginLink,
+.savedLink,
+.accountButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-body);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+/* 지금 저장함에 있을 때: 메인 메뉴의 현재 표시처럼 진한 글씨만 */
+.savedLinkActive {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.member {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.account {
+  position: relative;
+}
+
+.accountButton[aria-expanded="true"] {
+  background: var(--bg-subtle);
+}
+
+/* 계정 메뉴: 작은 흰색 드롭다운 */
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  width: 220px;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(25, 31, 40, 0.08);
+}
+
+.menuEmail {
+  padding: 8px 10px 10px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--text-sub);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menuItem {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  color: var(--text-body);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.menuItem:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+/* ───── /login ───── */
+.authMain {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 56px 24px 80px;
+}
+
+.authBox {
+  width: 100%;
+  max-width: 380px;
+}
+
+.authTitle {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.authForm {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-body);
+}
+
+.input {
+  height: 44px;
+  font: inherit;
+  font-size: 16px; /* 16px 미만이면 iOS에서 확대됨 */
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 0 14px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.authError {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--danger, #c4320a);
+}
+
+.authNotice {
+  margin-top: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-body);
+  background: var(--bg-subtle);
+  border-radius: 8px;
+}
+
+.authForm .authNotice {
+  margin-top: 0;
+}
+
+.submit {
+  margin-top: 4px;
+  height: 44px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--primary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.switchRow {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text-sub);
+}
+
+.switchButton {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+  background: none;
+  border: none;
+  padding: 2px 0;
+  cursor: pointer;
+}
+
+.guestNote {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+
+.backLink {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-sub);
+}
+
+/* ───── /saved ───── */
+/* 본문 폭: 메인(1040px)과 거의 같게. main 요소로 한정해 공통 .container보다 우선 적용 */
+main.savedMain {
+  max-width: 1000px;
+  padding-bottom: 64px;
+}
+
+.savedBack {
+  margin-top: 20px;
+}
+
+.saved {
+  padding-top: 8px;
+}
+
+.savedTitle {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.savedSection {
+  margin-top: 28px;
+}
+
+/* 탭: 관심 공고 N / 저장한 비교 N — 긴 밑줄 없이, 지금 탭은 진한 글씨 + 글자 길이만큼 짧은 선 */
+.savedTabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 20px;
+}
+
+.savedTab {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 0 6px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-sub);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+
+.savedTabActive {
+  font-weight: 700;
+  color: var(--text);
+  border-bottom-color: var(--text);
+}
+
+.savedTab:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.savedCount {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 관심 공고 목록 전체가 하나의 흰색 surface. 공고별 카드 없이 row가 이어지고, 사이는 여백 + 아주 얇은 선 */
+.savedList {
+  margin-top: 12px;
+}
+
+.savedList .savedRow {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 20px 24px;
+  border-bottom: none;
+  border-radius: 0;
+}
+
+.savedList .savedRow + .savedRow {
+  border-top: 1px solid var(--border);
+}
+
+/* 마감 정보: 직무명 바로 옆, 보조 글씨 */
+.savedList .savedDeadline {
+  margin-left: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-sub);
+}
+
+/* 직무명 바로 아래 메타 줄 */
+.savedList .savedMeta {
+  margin-top: 6px;
+}
+
+/* 키워드 → 액션 줄을 위아래로: 액션이 오른쪽 끝에 떨어져 있지 않게 */
+.savedList .savedBottom {
+  margin-top: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* 액션 한 묶음: 왼쪽 정렬, 간격 좁게, 저장 해제 앞에만 얇은 구분선. 첫 버튼 글자를 본문 선에 맞춤 */
+.savedList .savedActions {
+  margin-left: -10px;
+  gap: 2px;
+}
+
+.savedActionDivider {
+  width: 1px;
+  height: 14px;
+  margin: 0 6px;
+  background: var(--border-strong);
+}
+
+/* 저장한 비교 row: 메타(공고 N개 비교 · 저장 날짜) → A/B/C 회사·제목 → 동작 */
+.savedList .compareSavedMeta {
+  margin-top: 0;
+}
+
+.compareSavedJobs {
+  list-style: none;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compareSavedJobs li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.compareSavedText {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+}
+
+.compareSavedCompany {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-sub);
+}
+
+.compareSavedTitle {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.compareSavedError {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--danger, #c4320a);
+}
+
+/* 내가 추가한 공고: 비교에 담기 결과 안내 (작은 글씨, 같은 줄 링크) */
+.customNote {
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.customNoteLink {
+  font: inherit;
+  font-weight: 600;
+  color: var(--primary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 이번 화면에서 저장 해제한 공고: 흐리게 남겨 두고 다시 저장 가능 */
+.savedList .savedRowOff h3,
+.savedList .savedRowOff p {
+  opacity: 0.55;
+}
+
+.savedEmpty {
+  margin-top: 12px;
+  padding: 64px 16px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.savedEmptyTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.savedEmptyDesc {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--text-sub);
+}
+
+.savedLoading {
+  padding-top: 24px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* row hover: 공통 hover 면 (--bg-subtle, 그림자 없음) */
+@media (hover: hover) and (pointer: fine) {
+  .savedList .savedRow:hover {
+    background: var(--bg-subtle);
+  }
+}
+
+.loginLink:focus-visible,
+.savedLink:focus-visible,
+.accountButton:focus-visible,
+.menuItem:focus-visible,
+.submit:focus-visible,
+.switchButton:focus-visible,
+.backLink:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .loginLink:hover,
+  .savedLink:hover,
+  .accountButton:hover,
+  .menuItem:hover:not(:disabled) {
+    background: var(--bg-subtle);
+    color: var(--text);
+  }
+  .submit:hover:not(:disabled) {
+    background: var(--primary-hover);
+  }
+  .backLink:hover {
+    color: var(--text);
+  }
+}
+
+/* ───── Mobile ───── */
+@media (max-width: 600px) {
+  /* 헤더가 좁으므로 저장함은 계정 메뉴 안에서만 */
+  .savedLink {
+    display: none;
+  }
+  .loginLink,
+  .accountButton {
+    height: 30px;
+    padding: 0 6px;
+    font-size: 12px;
+  }
+  .authMain {
+    padding: 32px 16px 64px;
+  }
+  .savedBack {
+    margin-top: 12px;
+  }
+  .savedTitle {
+    font-size: 22px;
+  }
+  .savedSection {
+    margin-top: 16px;
+  }
+  /* 탭 3개: 좁은 화면에서 한 줄에 들어가게 */
+  .savedTabs {
+    column-gap: 14px;
+  }
+  .savedTab {
+    font-size: 15px;
+  }
+  .savedList .savedRow {
+    padding: 16px;
+  }
+  .savedList .savedActions {
+    margin-left: 0;
+  }
+  /* 모바일: 버튼이 한 줄을 나눠 쓰므로 구분선은 숨김 */
+  .savedActionDivider {
+    display: none;
+  }
+}

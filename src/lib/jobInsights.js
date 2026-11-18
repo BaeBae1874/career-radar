@@ -66,6 +66,28 @@ export function getRequiredPoints(job) {
   return points;
 }
 
+// 기본 고용·경력 정보: 특별 조건이 아님 (neutral 표시)
+const BASIC_CONDITIONS = new Set(["신입", "경력", "경력무관", "인턴", "계약직", "정규직"]);
+const SPECIAL_CONDITION_PATTERNS = [
+  /졸업\s*예정자/, // 졸업 예정자 지원 가능
+  /전환/, // 정규직 전환 가능
+  /포트폴리오/, // 포트폴리오 필수
+  /(전문학사|학사|석사|박사|초대졸|대졸)\s*이상/, // 학력 조건
+  /\d+\s*개월\s*근무/, // 근무 기간 조건
+  /\S\s+우대$/, // 특정 도구 우대 (예: "GA4 우대")
+];
+
+/**
+ * 사용자가 놓치면 아쉬운 "특별 조건"인지 (화면에서 amber로 표시)
+ * 신입·인턴·계약직·정규직 같은 기본 고용/경력 정보는 false
+ */
+export function isSpecialCondition(text) {
+  if (typeof text !== "string") return false;
+  const value = text.trim();
+  if (!value || BASIC_CONDITIONS.has(value.replace(/\s+/g, ""))) return false;
+  return SPECIAL_CONDITION_PATTERNS.some((re) => re.test(value));
+}
+
 /** 우대사항(preferred)에 단어로 등장하는 도구 이름들 (목록 순서) */
 export function getPreferredTools(job) {
   const preferred = strings(job?.preferred);
@@ -195,6 +217,10 @@ export function toRecentSnapshot(job) {
   for (const k of RECENT_FIELDS) snap[k] = typeof job[k] === "string" ? job[k] : "";
   snap.description = snap.description.slice(0, MAX_DESCRIPTION);
   snap.keywords = strings(job.keywords).slice(0, 10);
+  // 모집 일정·근무기간: 있을 때만 (최근 본 공고에서 다시 열어도 일정 표시)
+  for (const k of ["applicationStartDate", "applicationEndDate", "closeType", "workPeriod"]) {
+    if (typeof job[k] === "string" && job[k].trim()) snap[k] = job[k].trim().slice(0, 100);
+  }
   return snap;
 }
 

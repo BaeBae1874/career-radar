@@ -5,29 +5,8 @@
   scroll-margin-top: 76px;
 }
 
-/* 검색 입력 영역: 카드 없이 Hero 바로 아래 */
 .searchBox {
   padding: 0;
-}
-
-.eyebrow {
-  margin-bottom: 6px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--primary);
-}
-
-.heading {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.desc {
-  margin-top: 8px;
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--text-sub);
 }
 
 .srOnly {
@@ -39,27 +18,42 @@
   white-space: nowrap;
 }
 
+/* ───── 검색창 ───── */
 .searchForm {
-  margin-top: 0;
   display: flex;
   gap: 8px;
 }
 
-.searchInput {
+.searchField {
+  position: relative;
   flex: 1;
   min-width: 0;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  height: 52px;
   font: inherit;
-  font-size: 16px;
+  font-size: 16px; /* 16px 미만이면 iOS에서 확대됨 */
   color: var(--text);
   background: #fff;
   border: 1px solid var(--border-strong);
   border-radius: 10px;
-  padding: 14px 16px;
+  padding: 0 16px 0 44px;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .searchInput::placeholder {
-  color: #b0b8c1;
+  color: var(--text-muted);
 }
 
 .searchInput:focus {
@@ -70,9 +64,10 @@
 
 .searchButton {
   flex-shrink: 0;
+  height: 52px;
   font: inherit;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
   color: #fff;
   background: var(--primary);
   border: none;
@@ -88,17 +83,18 @@
   cursor: wait;
 }
 
-/* 직무 바로가기: 검색창보다 약하게, 작은 outline chip (줄바꿈 자연스럽게) */
+/* ───── 직무 바로가기: 검색창 바로 아래 가로 한 줄 ───── */
 .shortcuts {
   margin-top: 12px;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
+  gap: 10px;
 }
 
 .shortcutsLabel {
+  flex-shrink: 0;
   font-size: 13px;
+  font-weight: 600;
   color: var(--text-sub);
 }
 
@@ -110,15 +106,17 @@
 }
 
 .shortcut {
+  height: 30px;
   font: inherit;
   font-size: 13px;
   font-weight: 500;
   color: var(--text-body);
-  background: var(--surface, #fff);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 5px 12px;
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 0 10px;
   cursor: pointer;
+  white-space: nowrap;
   transition: border-color 0.15s, color 0.15s;
 }
 
@@ -128,35 +126,41 @@
 
 .shortcutActive {
   color: var(--primary);
+  background: var(--primary-soft);
   border-color: var(--primary);
   font-weight: 600;
 }
 
-.shortcut:focus-visible,
-.recentItem:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
+.error {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--danger, #c4320a);
 }
 
-/* 최근 본 공고: 카드 없이 얇은 구분선 리스트 */
+/* 최근 본 공고: 행 전체가 클릭 영역 (직무명 › / 회사·조건) */
 .recent {
-  margin-top: 28px;
+  margin-top: 32px;
 }
 
 .recentTitle {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text);
 }
 
+/* 최근 본 공고: 목록 전체가 하나의 흰색 surface, 안쪽은 얇은 선 */
 .recentList {
   list-style: none;
-  margin-top: 8px;
-  border-top: 1px solid var(--border);
+  margin-top: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 
-.recentList li {
-  border-bottom: 1px solid var(--border);
+.recentList li + li {
+  border-top: 1px solid var(--border);
 }
 
 .recentItem {
@@ -169,75 +173,339 @@
   text-align: left;
   background: none;
   border: none;
-  padding: 12px 2px;
+  padding: 14px 16px;
   cursor: pointer;
+  transition: background 0.15s;
 }
 
 .recentText {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-}
-
-.recentCompany {
-  font-size: 12px;
-  color: var(--text-sub);
+  gap: 3px;
 }
 
 .recentJob {
   font-size: 15px;
   font-weight: 600;
+  line-height: 1.45;
   color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.recentAction {
-  flex-shrink: 0;
+.recentMeta {
+  display: flex;
+  flex-wrap: wrap;
   font-size: 13px;
-  font-weight: 600;
   color: var(--text-sub);
 }
 
-/* 핵심 체크 포인트: 키워드(회색 채움)와 구분되는 흰 바탕 + 얇은 테두리 */
+.recentMeta > span + span::before {
+  content: "·";
+  margin: 0 6px;
+  color: var(--text-muted);
+}
+
+.recentChevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: color 0.15s, transform 0.15s;
+}
+
+/* ───── 결과 ───── */
+.results {
+  margin-top: 28px;
+  scroll-margin-top: 76px; /* 페이지 이동 시 고정 헤더 아래로 */
+}
+
+/* 출처: 결과 요약 아래 작은 한 줄 */
+.sourceRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.sourceLabel {
+  color: var(--text-muted);
+}
+
+.sourceChip {
+  font-weight: 500;
+  color: var(--text-sub);
+}
+
+.sampleNote {
+  color: var(--text-muted);
+}
+
+.attribution {
+  margin-left: auto;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.attribution:hover {
+  text-decoration: underline;
+}
+
+/* 근무형태 필터: 작은 segmented control */
+.filters {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.filter {
+  height: 30px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-sub);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.filterCount {
+  margin-left: 2px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.filterActive {
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.filterActive .filterCount {
+  color: var(--primary);
+}
+
+/* ───── 공고 목록: 카드 대신 행. 목록 전체가 하나의 흰색 surface ───── */
+.list {
+  margin-top: 8px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden; /* hover 배경이 모서리 밖으로 나가지 않게 */
+}
+
+.list > .row:last-child {
+  border-bottom: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 0 8px;
+  padding: 16px 16px 16px 8px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+/* 비교에 고른 공고: 왼쪽 2px 파란 선 */
+.row.rowCompared {
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+/* 지금 분석 중인 공고: 아주 연한 배경 */
+.row.rowSelected {
+  background: var(--bg-accent);
+}
+
+.check {
+  display: flex;
+  justify-content: center;
+  padding-top: 3px;
+  cursor: pointer;
+}
+
+.check input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.rowBody {
+  min-width: 0;
+}
+
+.rowTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.title {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+/* 체크 포인트: outline tag (조건) */
 .checks {
-  margin-top: 10px;
   list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
 }
 
 .checks li {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
+  line-height: 20px;
   color: var(--text-body);
   background: #fff;
   border: 1px solid var(--border-strong);
-  border-radius: 4px;
-  padding: 2px 8px;
+  border-radius: 6px;
+  padding: 0 7px;
 }
 
-.checks + .keywords {
-  margin-top: 6px;
+.deadline {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
-.error {
-  margin-top: 12px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: #c4320a;
-  background: #fff6f2;
+/* 실제로 하게 될 일: 직무명 바로 아래 한 줄 */
+.task {
+  margin-top: 4px;
+  display: flex;
+  gap: 8px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.taskLabel {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.75;
+  color: var(--text-sub);
+}
+
+.taskText {
+  min-width: 0;
+  color: var(--text-body);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  overflow: hidden;
+}
+
+.meta {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.meta > span + span::before {
+  content: "·";
+  margin: 0 6px;
+  color: var(--text-muted);
+}
+
+.rowBottom {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+/* 키워드: neutral tag */
+.keywords {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.keywords li {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 22px;
+  color: var(--text-sub);
+  background: var(--bg-subtle);
+  border-radius: 6px;
+  padding: 0 8px;
+}
+
+.source {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* 원문·분석: 오른쪽 작은 보조 동작 (AI 분석이 목록의 주인공이 되지 않게) */
+.actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.linkAction,
+.analyzeAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 30px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
   border-radius: 8px;
-  padding: 12px 14px;
+  padding: 0 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, background 0.15s;
 }
 
-/* ───── Results ───── */
-.results {
-  margin-top: 28px;
-  scroll-margin-top: 76px; /* 페이지 이동 시 고정 헤더 아래로 */
+.linkAction {
+  color: var(--text-sub);
+  background: none;
+  border: 1px solid transparent;
+}
+
+.analyzeAction {
+  color: var(--text-body);
+  background: #fff;
+  border: 1px solid var(--border-strong);
+}
+
+.empty {
+  margin-top: 8px;
+  padding: 40px 16px;
+  font-size: 15px;
+  text-align: center;
+  color: var(--text-sub);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 /* ───── Pagination: 카드 없이 가운데 정렬, 현재 페이지만 restrained blue ───── */
@@ -298,347 +566,123 @@
 }
 
 .pageNumber:focus-visible,
-.pageArrow:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-
-.results > .sourceRow {
-  margin-bottom: 10px;
-  padding: 0 4px;
-}
-
-/* 출처 표시 (나중에 source 값 기준 필터 버튼으로 바꾸기 쉬운 구조) */
-.sourceRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 8px;
-  font-size: 13px;
-}
-
-.sourceLabel {
-  font-weight: 600;
-  color: var(--text-sub);
-}
-
-.sourceChip {
-  color: var(--text-body);
-  background: var(--bg-subtle);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 2px 8px;
-}
-
-/* 사람인 실데이터일 때만 보이는 출처 표기 */
-.attribution {
-  margin: -4px 0 10px;
-  padding: 0 4px;
-  font-size: 12px;
-}
-
-.attribution a {
-  color: var(--text-muted);
-  text-decoration: none;
-}
-
-.attribution a:hover {
-  text-decoration: underline;
-}
-
-.sampleNote {
-  color: var(--text-muted);
-}
-
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.filter {
-  font: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-body);
-  background: #fff;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  padding: 7px 12px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-
-.filterCount {
-  margin-left: 2px;
-  color: var(--text-muted);
-}
-
-.filterActive {
-  color: var(--primary);
-  background: var(--primary-soft);
-  border-color: var(--primary);
-  font-weight: 600;
-}
-
-.filterActive .filterCount {
-  color: var(--primary);
-}
-
-.list {
-  margin-top: 8px;
-  list-style: none;
-  border-top: 1px solid var(--border-strong);
-}
-
-/* ───── 공고 하나 = 하나의 정보 단위 ───── */
-.card {
-  padding: 22px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.card:last-child {
-  border-bottom: 1px solid var(--border);
-}
-
-/* 분석 중인 공고: 배경은 그대로, 왼쪽 3px 파란 선만 */
-.card.cardSelected {
-  padding-left: 16px;
-  box-shadow: inset 3px 0 0 var(--primary);
-}
-
-.cardHead {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.cardHeadText {
-  min-width: 0;
-}
-
-.company {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-sub);
-}
-
-.companyType {
-  color: var(--text-muted);
-}
-
-.companyType::before {
-  content: "·";
-  margin: 0 6px;
-}
-
-.title {
-  margin-top: 4px;
-  font-size: 19px;
-  font-weight: 700;
-  line-height: 1.45;
-  letter-spacing: -0.01em;
-  color: var(--text);
-}
-
-/* 비교 선택: 제목 오른쪽, 작은 토글 */
-.compareCheck {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 2px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-sub);
-  background: #fff;
-  border: 1px solid var(--border-strong);
-  border-radius: 6px;
-  padding: 6px 10px;
-  cursor: pointer;
-  user-select: none;
-  white-space: nowrap;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-}
-
-.compareCheck input {
-  width: 15px;
-  height: 15px;
-  margin: 0;
-  accent-color: var(--primary);
-  cursor: pointer;
-}
-
-.compareCheckOn {
-  color: var(--primary);
-  background: var(--primary-soft);
-  border-color: var(--primary);
-  font-weight: 600;
-}
-
-.compareCheck:has(input:focus-visible) {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-
-.meta {
-  margin-top: 8px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  font-size: 14px;
-  color: var(--text-body);
-}
-
-.meta > span + span::before {
-  content: "";
-  display: inline-block;
-  width: 1px;
-  height: 11px;
-  margin: 0 8px;
-  background: var(--border-strong);
-  vertical-align: -1px;
-}
-
-.deadline {
-  font-weight: 600;
-  color: var(--primary);
-}
-
-.keywords {
-  margin-top: 10px;
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.keywords li {
-  font-size: 12px;
-  color: var(--text-sub);
-  background: var(--bg-subtle);
-  border-radius: 4px;
-  padding: 3px 8px;
-}
-
-/* 실제로 하게 될 일 — Career Radar만의 정보 */
-.task {
-  margin-top: 14px;
-  padding: 2px 0 2px 12px;
-  border-left: 2px solid var(--primary);
-}
-
-.taskLabel {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--primary);
-}
-
-.taskText {
-  margin-top: 2px;
-  font-size: 15px;
-  font-weight: 400;
-  line-height: 1.55;
-  color: var(--text-body);
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
-}
-
-.source {
-  margin-top: 10px;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.actions {
-  margin-top: 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.analyzeButton,
-.linkButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 8px;
-  padding: 9px 16px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.analyzeButton {
-  color: #fff;
-  background: var(--primary);
-  border: 1px solid var(--primary);
-}
-
-.linkButton {
-  color: var(--text-body);
-  background: #fff;
-  border: 1px solid var(--border-strong);
-}
-
-.empty {
-  margin-top: 8px;
-  padding: 40px 16px;
-  font-size: 15px;
-  text-align: center;
-  color: var(--text-sub);
-  border-top: 1px solid var(--border-strong);
-  border-bottom: 1px solid var(--border);
-}
-
+.pageArrow:focus-visible,
 .searchButton:focus-visible,
 .filter:focus-visible,
-.analyzeButton:focus-visible,
-.linkButton:focus-visible {
+.shortcut:focus-visible,
+.recentItem:focus-visible,
+.linkAction:focus-visible,
+.analyzeAction:focus-visible,
+.check:has(input:focus-visible) {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .searchButton:hover:not(:disabled),
-  .analyzeButton:hover {
+  .row:hover {
+    background: var(--bg-subtle);
+  }
+  .row.rowSelected:hover {
+    background: var(--bg-accent);
+  }
+  .searchButton:hover:not(:disabled) {
     background: var(--primary-hover);
   }
-  .pageNumber:not(.pageCurrent):hover,
-  .pageArrow:hover:not(:disabled) {
-    border-color: var(--border-strong);
-  }
-  .shortcut:hover:not(:disabled) {
+  .shortcut:hover:not(:disabled),
+  .filter:hover,
+  .analyzeAction:hover {
     border-color: var(--text-muted);
   }
   .shortcutActive:hover:not(:disabled) {
     border-color: var(--primary);
   }
-  .recentItem:hover .recentJob,
-  .recentItem:hover .recentAction {
-    color: var(--primary);
+  .filterActive:hover {
+    border-color: transparent;
   }
-  .linkButton:hover,
-  .filter:hover,
-  .compareCheck:hover {
-    border-color: var(--text-muted);
+  .linkAction:hover {
+    color: var(--text);
   }
-  .filterActive:hover,
-  .compareCheckOn:hover {
-    border-color: var(--primary);
+  .pageNumber:not(.pageCurrent):hover,
+  .pageArrow:hover:not(:disabled) {
+    border-color: var(--border-strong);
+  }
+  .recentItem:hover {
+    background: var(--bg-subtle);
+  }
+  .recentItem:hover .recentChevron {
+    color: var(--text-sub);
+    transform: translateX(2px);
   }
 }
 
-/* ───── Mobile ───── */
+/* ───── Mobile: 검색 우선, 필터 압축(가로 스크롤), 행은 세로 ───── */
 @media (max-width: 600px) {
+  .searchInput,
+  .searchButton {
+    height: 48px;
+  }
+  .searchButton {
+    padding: 0 16px;
+  }
+  /* 직무 바로가기: 줄바꿈 대신 가로 스크롤 한 줄 */
+  .shortcuts {
+    margin-left: -16px;
+    margin-right: -16px;
+    padding: 0 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .shortcuts::-webkit-scrollbar {
+    display: none;
+  }
+  .shortcutList {
+    flex-wrap: nowrap;
+  }
+  .results {
+    margin-top: 20px;
+  }
+  .filters {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .filters::-webkit-scrollbar {
+    display: none;
+  }
+  .row {
+    grid-template-columns: 24px minmax(0, 1fr);
+    gap: 0 6px;
+    padding: 14px 12px 14px 4px;
+  }
+  .title {
+    font-size: 15px;
+  }
+  .task {
+    font-size: 14px;
+  }
+  .taskText {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+  .rowBottom {
+    margin-top: 8px;
+  }
+  .actions {
+    width: 100%;
+    margin-left: 0;
+  }
+  .analyzeAction {
+    flex: 1;
+    justify-content: center;
+    height: 36px;
+  }
+  .linkAction {
+    height: 36px;
+    border-color: var(--border-strong);
+    flex: 1;
+    justify-content: center;
+  }
   .pageHideMobile {
     display: none;
   }
@@ -650,40 +694,326 @@
     font-size: 18px;
     line-height: 1;
   }
-  .heading {
-    font-size: 20px;
+}
+
+/* ───── 검색 결과 행 (공고 찾기 전용, 저장함은 위의 .row 계열을 그대로 사용) ─────
+   하나의 흰색 목록(.list) 안에서 행끼리 얇은 선으로 이어지고, 공고마다 카드는 만들지 않는다.
+   정보 위치는 모든 공고에서 같다: 회사 → 제목 → 하는 일 → 조건 → 키워드/동작 */
+.post {
+  position: relative;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.list > .post:last-child {
+  border-bottom: none;
+}
+
+/* 비교에 고른 공고: 왼쪽 파란 선 하나만 (배경 없음) */
+.post.postCompared {
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+/* 지금 분석 중인 공고: 아주 연한 배경 */
+.post.postSelected {
+  background: var(--bg-accent);
+}
+
+/* ① 회사명 + 오른쪽 비교·저장 */
+.postHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 28px;
+}
+
+.postCompany {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.postPick {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: -6px;
+}
+
+/* 비교 선택: 체크박스 + 작은 글자. 선택되면 글자만 파란색 */
+.compareToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.compareToggle input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.compareToggleOn {
+  color: var(--primary);
+}
+
+/* ② 공고 제목 */
+.postTitle {
+  margin-top: 2px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: -0.015em;
+  color: var(--text);
+}
+
+/* ③ 실제로 하게 될 일: 메타보다 한 단계 위 (옅은 바탕 한 줄 블록, 최대 2줄) */
+.postTask {
+  margin-top: 8px;
+  display: flex;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 15px;
+  line-height: 1.55;
+  background: var(--bg-page);
+  border-radius: 6px;
+}
+
+.postTaskLabel {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.8;
+  color: var(--primary);
+}
+
+.postTaskText {
+  min-width: 0;
+  font-weight: 500;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+/* ④ 채용 조건: 중요한 것만 태그, 나머지는 글자 · 구분 */
+.postConditions {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.conditionTags {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.conditionTags li {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 22px;
+  color: var(--text-body);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 0 7px;
+}
+
+/* 특별 조건: warm amber (색은 page.module.css의 --special-* 토큰) */
+.conditionTags li.conditionSpecial {
+  color: var(--special-text);
+  background: var(--special-bg);
+  border-color: var(--special-border);
+}
+
+.conditionText {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 14px;
+  color: var(--text-sub);
+}
+
+.conditionText > span + span::before {
+  content: "·";
+  margin: 0 6px;
+  color: var(--text-muted);
+}
+
+.postDeadline {
+  font-weight: 600;
+  color: var(--text-body);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ⑤ 키워드 + 원문·분석 */
+.postFoot {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.postKeywords {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.postKeywords li {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 22px;
+  color: var(--text-sub);
+  background: var(--bg-subtle);
+  border-radius: 4px;
+  padding: 0 8px;
+}
+
+.postActions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.postLink,
+.postAnalyze {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 30px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+/* 원문 공고: 얇은 테두리 버튼 */
+.postLink {
+  color: var(--text-body);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+}
+
+/* 공고 분석(AI): 테두리 없는 회색 글자 — 원문·비교보다 약하게 */
+.postAnalyze {
+  color: var(--text-sub);
+  background: none;
+  border: 1px solid transparent;
+}
+
+.compareToggle:has(input:focus-visible),
+.postLink:focus-visible,
+.postAnalyze:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .post:hover {
+    background: var(--bg-subtle);
   }
-  .card.cardSelected {
-    padding-left: 14px;
+  .post.postSelected:hover {
+    background: var(--bg-accent);
   }
-  .searchForm {
-    flex-direction: column;
+  .compareToggle:hover {
+    background: var(--surface);
+    color: var(--text);
   }
-  .searchButton {
-    padding: 14px 24px;
+  .compareToggleOn:hover {
+    color: var(--primary);
   }
-  .card {
-    padding: 22px 0;
+  .postLink:hover {
+    border-color: var(--text-muted);
+    color: var(--text);
   }
-  .task {
-    padding-left: 10px;
+  .postAnalyze:hover {
+    color: var(--text);
   }
-  .cardHead {
-    gap: 10px;
+}
+
+@media (max-width: 600px) {
+  .post {
+    padding: 16px 14px 14px;
   }
-  .title {
-    font-size: 17px;
+  .postTitle {
+    font-size: 16px;
   }
-  .compareCheck {
-    padding: 5px 8px;
-    font-size: 12px;
-  }
-  .taskText {
+  .postTask {
     font-size: 14px;
+    padding: 8px 10px;
   }
-  .analyzeButton,
-  .linkButton {
+  .conditionText {
+    font-size: 13px;
+  }
+  .postActions {
+    width: 100%;
+    margin-left: 0;
+  }
+  .postLink,
+  .postAnalyze {
     flex: 1;
-    padding: 11px 12px;
+    justify-content: center;
+    height: 36px;
+  }
+}
+
+/* 공고 직접 추가: 직무 바로가기 아래 작은 보조 링크 (새 색·상자 없음) */
+.customEntry {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.customEntryLink {
+  font-weight: 600;
+  color: var(--text-body);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--border-strong);
+}
+
+.customEntryLink:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .customEntryLink:hover {
+    color: var(--text);
+    text-decoration-color: currentColor;
   }
 }

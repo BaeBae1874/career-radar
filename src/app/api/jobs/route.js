@@ -1,4 +1,4 @@
-import { SAMPLE_JOBS } from "./sampleJobs";
+import { getSampleJobs } from "./sampleJobs";
 
 const MAX_KEYWORD_LENGTH = 100;
 
@@ -17,13 +17,16 @@ const normalize = (v) => String(v ?? "").replace(/\s+/g, "").toLowerCase();
  *      → id·company·title·employmentType·career·location·deadline·keywords·originalUrl 등
  *        기존 UI field 이름 그대로 나온다.
  *      사람인 응답에는 상세 본문이 없어 description·tasks·required·preferred는 빈 값으로 온다. (추측해서 만들지 않음)
+ *      모집 일정도 함께 나온다: applicationStartDate(opening-timestamp) · applicationEndDate(expiration-timestamp, 접수 마감일일 때) ·
+ *      closeType(close-type 1~4). 근무기간(workPeriod)은 사람인 목록 API에 없어 빈 값.
  *   4. 아래 GET 응답의 isSample을 false로 (화면의 "샘플 데이터" 표시가 사라짐)
  *   프론트엔드는 GET /api/jobs?keyword=... 의 { jobs } 응답만 사용한다.
  */
 async function fetchJobs(keyword) {
   const q = normalize(keyword);
-  if (!q) return SAMPLE_JOBS;
-  return SAMPLE_JOBS.filter((job) =>
+  const jobs = getSampleJobs(); // 샘플 + 오늘 기준 모집 일정
+  if (!q) return jobs;
+  return jobs.filter((job) =>
     [job.company, job.title, ...job.keywords].some((field) => normalize(field).includes(q))
   );
 }

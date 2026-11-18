@@ -1,7 +1,7 @@
 // 실행: node --test src/lib/jobInsights.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { getCheckPoints, getComparePoints, pushRecent, MAX_RECENT } from "./jobInsights.js";
+import { getCheckPoints, getComparePoints, isSpecialCondition, pushRecent, MAX_RECENT } from "./jobInsights.js";
 
 // ───── 핵심 체크 포인트 ─────
 test("포트폴리오 필수 + 학사 이상 (우선순위 순서, 최대 2개)", () => {
@@ -223,4 +223,18 @@ test("근무 기간·우대 도구와 함께여도 순서·최대 2개 유지", 
     getCheckPoints({ employmentTypes: ["인턴직 (정규직 전환가능)"], required: ["6개월 근무 가능"], preferred: ["SQL"] }),
     ["6개월 근무", "인턴"]
   );
+});
+
+// ───── 특별 조건 (amber 표시) ─────
+
+test("특별 조건: 놓치면 아쉬운 조건만 true", () => {
+  for (const t of ["졸업 예정자 지원 가능", "포트폴리오 필수", "학사 이상", "전문학사 이상", "6개월 근무", "GA4 우대", "SQL 우대", "계약직 (정규직 전환가능)", "정규직 전환 가능"]) {
+    assert.equal(isSpecialCondition(t), true, t);
+  }
+});
+
+test("특별 조건: 기본 고용·경력 정보와 일반 키워드는 false", () => {
+  for (const t of ["신입", "인턴", "계약직", "정규직", "경력", "경력무관", " 인턴 ", "CRM · SQL", "데이터 분석", "우대", "", null, 3]) {
+    assert.equal(isSpecialCondition(t), false, String(t));
+  }
 });

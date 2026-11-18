@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import styles from "./JobSearch.module.css";
 import JobRadar from "./JobRadar";
 import { patchSession } from "./sessionStore";
-import { getCheckPoints } from "@/lib/jobInsights";
+import { getCheckPoints, isSpecialCondition } from "@/lib/jobInsights";
+import { scheduleLine } from "@/lib/schedule";
 import { getPageNumbers, paginate } from "@/lib/pagination";
 import { getSourceLabel, hasSaraminSource, matchesEmploymentFilter } from "@/lib/postingMeta";
 import {
@@ -13,6 +15,8 @@ import {
   recordRecent,
   subscribeRecent,
 } from "./recentStore";
+import SaveJobButton from "./SaveJobButton";
+import { useSavedJobs } from "./savedJobsStore";
 
 const MAX_CARD_KEYWORDS = 3;
 export const EMPLOYMENT_FILTERS = ["전체", "인턴", "정규직", "계약직"];
@@ -85,102 +89,155 @@ function RecentJobs({ jobs, onOpen }) {
         최근 본 공고
       </h3>
       <ul className={styles.recentList}>
-        {jobs.slice(0, RECENT_VISIBLE).map((job) => (
-          <li key={job.id}>
-            <button type="button" className={styles.recentItem} onClick={() => onOpen(job)}>
-              <span className={styles.recentText}>
-                <span className={styles.recentCompany}>{job.company}</span>
-                <span className={styles.recentJob}>{job.title}</span>
-              </span>
-              <span className={styles.recentAction}>
-                다시 분석 <span aria-hidden="true">→</span>
-              </span>
-            </button>
-          </li>
-        ))}
+        {jobs.slice(0, RECENT_VISIBLE).map((job) => {
+          // 저장된 공고 정보만 사용 (새 데이터 없음)
+          const meta = [job.company, job.employmentType, job.career, job.location].filter(Boolean);
+          return (
+            <li key={job.id}>
+              {/* 행 전체가 공고 진입점 (기존과 같이 분석 화면으로 열림) */}
+              <button
+                type="button"
+                className={styles.recentItem}
+                onClick={() => onOpen(job)}
+                aria-label={`${job.company} ${job.title} 다시 보기`}
+              >
+                <span className={styles.recentText}>
+                  <span className={styles.recentJob}>{job.title}</span>
+                  {meta.length > 0 && (
+                    <span className={styles.recentMeta}>
+                      {meta.map((m, k) => (
+                        <span key={k}>{m}</span>
+                      ))}
+                    </span>
+                  )}
+                </span>
+                <svg
+                  className={styles.recentChevron}
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M6 3.5 10.5 8 6 12.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
 }
 
-function JobCard({ job, selected, compared, showSource, onToggleCompare, onAnalyze }) {
-  const meta = [job.employmentType, job.career, job.location].filter(Boolean);
+/**
+ * 검색 결과 1행 (공고마다 카드 대신 목록 안의 행). 모든 공고에서 같은 자리에 같은 정보:
+ * ① 회사명 (오른쪽: 비교 선택·저장) ② 공고 제목 ③ 실제로 하게 될 일 (한 단계 강조)
+ * ④ 채용 조건: 중요한 것만 태그(신입·인턴·계약직·포트폴리오 필수 등), 나머지는 글자 + 마감
+ * ⑤ 핵심 직무 키워드 2~3개 / 원문 공고 · 공고 분석(가장 약하게)
+ */
+function JobRow({ job, selected, compared, saved, savePending, showSource, onToggleCompare, onAnalyze }) {
   const firstTask = job.tasks?.find((t) => typeof t === "string" && t.trim());
-  const checkPoints = getCheckPoints(job);
+  // 조건 태그: 경력 "신입" + 기존 핵심 체크 포인트(자격요건·근무형태에서 명확한 것만, 최대 2개)
+  const conditionTags = [
+    ...(typeof job.career === "string" && job.career.trim() === "신입" ? ["신입"] : []),
+    ...getCheckPoints(job),
+  ].filter((t, i, list) => list.indexOf(t) === i);
+  // 글자 메타: 태그로 이미 보인 값은 반복하지 않음 (예: 경력 "신입")
+  const conditionText = [job.career, job.employmentType, job.location]
+    .map((v) => (typeof v === "string" ? v.trim() : ""))
+    .filter((v) => v && !conditionTags.includes(v));
+  const keywords = (job.keywords ?? []).slice(0, MAX_CARD_KEYWORDS);
+  const schedule = scheduleLine(job);
+  const sourceLabel = showSource ? getSourceLabel(job.source) : "";
+  const name = `${job.company} ${job.title}`;
   return (
-    <li className={`${styles.card} ${selected ? styles.cardSelected : ""}`}>
-      <div className={styles.cardHead}>
-        <div className={styles.cardHeadText}>
-          <p className={styles.company}>
-            {job.company}
-            {/* companyType은 데이터에 있을 때만 표시 (현재는 샘플 값) */}
-            {job.companyType && <span className={styles.companyType}>{job.companyType}</span>}
-          </p>
-          <h3 className={styles.title}>{job.title}</h3>
+    <li
+      className={`${styles.post} ${compared ? styles.postCompared : ""} ${
+        selected ? styles.postSelected : ""
+      }`}
+    >
+      <div className={styles.postHead}>
+        <p className={styles.postCompany}>{job.company}</p>
+        <div className={styles.postPick}>
+          {/* 비교 선택 (최대 3개는 page.js에서 그대로 제한) */}
+          <label className={`${styles.compareToggle} ${compared ? styles.compareToggleOn : ""}`}>
+            <input
+              type="checkbox"
+              checked={compared}
+              onChange={() => onToggleCompare(job)}
+              aria-label={`${name} 비교 선택`}
+            />
+            <span aria-hidden="true">비교</span>
+          </label>
+          <SaveJobButton job={job} saved={saved} pending={savePending} size="icon" />
         </div>
-        <label className={`${styles.compareCheck} ${compared ? styles.compareCheckOn : ""}`}>
-          <input
-            type="checkbox"
-            checked={compared}
-            onChange={() => onToggleCompare(job)}
-            aria-label={`${job.company} ${job.title} 비교 선택`}
-          />
-          비교 선택
-        </label>
       </div>
 
-      <p className={styles.meta}>
-        {meta.map((m, i) => (
-          <span key={i}>{m}</span>
-        ))}
-        {job.deadline && <span className={styles.deadline}>{job.deadline}</span>}
-      </p>
+      <h3 className={styles.postTitle}>{job.title}</h3>
 
-      {/* 핵심 체크 포인트: 자격요건·우대사항·근무형태에서 명확한 것만 (최대 2개, AI 없음) */}
-      {checkPoints.length > 0 && (
-        <ul className={styles.checks} aria-label="핵심 체크 포인트">
-          {checkPoints.map((c) => (
-            <li key={c}>{c}</li>
-          ))}
-        </ul>
-      )}
-
-      {job.keywords?.length > 0 && (
-        <ul className={styles.keywords} aria-label="핵심 키워드">
-          {/* 빠르게 훑을 수 있게 최대 3개만 (나머지는 숨김) */}
-          {job.keywords.slice(0, MAX_CARD_KEYWORDS).map((k) => (
-            <li key={k}>{k}</li>
-          ))}
-        </ul>
-      )}
-
-      {/* 공고 tasks의 첫 번째 업무를 그대로 미리보기 (없으면 숨김) */}
+      {/* Career Radar 핵심: 제목 바로 아래 실제 업무 (공고 tasks의 첫 번째 그대로, 없으면 숨김) */}
       {firstTask && (
-        <div className={styles.task}>
-          <p className={styles.taskLabel}>실제로 하게 될 일</p>
-          <p className={styles.taskText}>{firstTask.trim()}</p>
-        </div>
+        <p className={styles.postTask}>
+          <span className={styles.postTaskLabel}>하는 일</span>
+          <span className={styles.postTaskText}>{firstTask.trim()}</span>
+        </p>
       )}
 
-      {showSource && getSourceLabel(job.source) && (
-        <p className={styles.source}>출처 {getSourceLabel(job.source)}</p>
-      )}
-
-      <div className={styles.actions}>
-        <button type="button" className={styles.analyzeButton} onClick={() => onAnalyze(job)}>
-          Career Radar 분석
-        </button>
-        {job.originalUrl && (
-          <a
-            className={styles.linkButton}
-            href={job.originalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => recordRecent(job)}
-          >
-            원문 공고 보기 <span aria-hidden="true">↗</span>
-          </a>
+      <div className={styles.postConditions}>
+        {conditionTags.length > 0 && (
+          <ul className={styles.conditionTags} aria-label="주요 조건">
+            {/* 특별 조건(졸업 예정자·포트폴리오·학력·근무 기간·도구 우대 등)만 amber, 신입·인턴·계약직은 기본 */}
+            {conditionTags.map((c) => (
+              <li key={c} className={isSpecialCondition(c) ? styles.conditionSpecial : undefined}>
+                {c}
+              </li>
+            ))}
+          </ul>
         )}
+        {(conditionText.length > 0 || schedule) && (
+          <p className={styles.conditionText}>
+            {conditionText.map((m, i) => (
+              <span key={i}>{m}</span>
+            ))}
+            {/* 모집 일정: "모집 11.18 ~ 12.02 · D-14" / "채용시 마감" / 상시·수시 (새 색 없이 글자 굵기만) */}
+            {schedule && <span className={styles.postDeadline}>{schedule}</span>}
+          </p>
+        )}
+      </div>
+
+      <div className={styles.postFoot}>
+        {keywords.length > 0 && (
+          <ul className={styles.postKeywords} aria-label="핵심 직무 키워드">
+            {keywords.map((k) => (
+              <li key={k}>{k}</li>
+            ))}
+          </ul>
+        )}
+        {sourceLabel && <span className={styles.source}>출처 {sourceLabel}</span>}
+        <div className={styles.postActions}>
+          {job.originalUrl && (
+            <a
+              className={styles.postLink}
+              href={job.originalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => recordRecent(job)}
+            >
+              원문 공고 <span aria-hidden="true">↗</span>
+            </a>
+          )}
+          {/* AI 분석: 원문·비교보다 한 단계 약한 글자 버튼 */}
+          <button type="button" className={styles.postAnalyze} onClick={() => onAnalyze(job)}>
+            공고 분석
+          </button>
+        </div>
       </div>
     </li>
   );
@@ -267,8 +324,10 @@ export default function JobSearch({
   const countOf = (f) => jobs.filter((j) => matchesEmploymentFilter(j, f)).length;
   const visibleJobs =
     jobs && jobs.filter((j) => matchesEmploymentFilter(j, filter));
-  // 통계(JobRadar)는 visibleJobs 전체 기준, 목록만 현재 페이지 10개
+  // 통계(JobRadar)는 visibleJobs 전체 기준, 목록만 현재 페이지 (PAGE_SIZE개)
   const paged = visibleJobs ? paginate(visibleJobs, page) : null;
+  // 저장 상태: 지금 페이지에 보이는 공고만 한 번에 조회 (공고마다 요청하지 않음)
+  const savedState = useSavedJobs(paged ? paged.items.map((j) => j.id) : []);
 
   const changeFilter = (f) => {
     setFilter(f);
@@ -298,26 +357,33 @@ export default function JobSearch({
           <label htmlFor="job-search" className={styles.srOnly}>
             직무나 키워드
           </label>
-          <input
-            id="job-search"
-            className={styles.searchInput}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="예: 마케팅, CRM, 데이터 분석, 서비스 기획"
-            autoComplete="off"
-          />
+          <div className={styles.searchField}>
+            <svg className={styles.searchIcon} width="18" height="18" viewBox="0 0 20 20" aria-hidden="true">
+              <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" strokeWidth="1.8" />
+              <path d="M13.5 13.5 17 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            <input
+              id="job-search"
+              className={styles.searchInput}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="직무명, 하는 일, 키워드로 검색 (예: 마케팅, CRM, 데이터 분석)"
+              autoComplete="off"
+            />
+          </div>
           <button
             type="button"
             className={styles.searchButton}
             disabled={loading}
             onClick={handleSearch}
           >
-            {loading ? "찾는 중..." : "채용공고 찾기"}
+            {loading ? "찾는 중..." : "검색"}
           </button>
         </form>
 
-        <div className={styles.shortcuts}>
-          <span className={styles.shortcutsLabel}>이런 직무를 찾아보세요</span>
+        {/* 직무 바로가기 (가로 한 줄, 모바일은 가로 스크롤) — 필터가 늘어나면 왼쪽 레일로 옮길 수 있게 분리 */}
+        <div className={styles.shortcuts} role="group" aria-label="직무 바로가기">
+          <span className={styles.shortcutsLabel}>직무</span>
           <ul className={styles.shortcutList}>
             {JOB_SHORTCUTS.map((s) => (
               <li key={s.query}>
@@ -337,6 +403,14 @@ export default function JobSearch({
           </ul>
         </div>
 
+        {/* 검색 결과에 없는 공고: 채용사이트에서 복사해 직접 추가 (작은 보조 링크) */}
+        <p className={styles.customEntry}>
+          찾는 공고가 없나요?{" "}
+          <Link href="/custom-job" className={styles.customEntryLink}>
+            공고 직접 추가
+          </Link>
+        </p>
+
         {error && (
           <p className={styles.error} role="alert">
             {error}
@@ -349,33 +423,7 @@ export default function JobSearch({
 
       {jobs && (
         <div className={styles.results} aria-live="polite" ref={resultsRef}>
-          <p className={styles.sourceRow}>
-            <span className={styles.sourceLabel}>출처</span>
-            {/* 샘플 상태에서는 사람인을 실제 출처처럼 보이지 않게 '샘플 데이터'로 표시 */}
-            {isSample ? (
-              <>
-                <span className={styles.sourceChip}>샘플 데이터</span>
-                <span className={styles.sampleNote}>실제 채용공고 연동은 준비 중이에요.</span>
-              </>
-            ) : (
-              sources.map((src) => (
-                <span key={src} className={styles.sourceChip}>
-                  {src}
-                </span>
-              ))
-            )}
-          </p>
-
-          {/* 사람인 실데이터(source === "saramin")가 있을 때만 출처 표기. 샘플 데이터만 쓰는 지금은 표시되지 않음 */}
-          {hasSaraminSource(jobs) && (
-            <p className={styles.attribution}>
-              <a href="https://www.saramin.co.kr" target="_blank" rel="noopener noreferrer">
-                Powered by 취업 사람인
-              </a>
-            </p>
-          )}
-
-          {/* 현재 필터로 보이는 공고 기준 요약 (필터를 바꾸면 다시 계산됨) */}
+          {/* 결과 요약 한 줄 + 근무형태 필터 (가로) */}
           {jobs.length > 0 && (
             <JobRadar
               jobs={visibleJobs}
@@ -399,15 +447,44 @@ export default function JobSearch({
             />
           )}
 
+          <p className={styles.sourceRow}>
+            <span className={styles.sourceLabel}>출처</span>
+            {/* 샘플 상태에서는 사람인을 실제 출처처럼 보이지 않게 '샘플 데이터'로 표시 */}
+            {isSample ? (
+              <>
+                <span className={styles.sourceChip}>샘플 데이터</span>
+                <span className={styles.sampleNote}>실제 채용공고 연동은 준비 중이에요.</span>
+              </>
+            ) : (
+              sources.map((src) => (
+                <span key={src} className={styles.sourceChip}>
+                  {src}
+                </span>
+              ))
+            )}
+            {/* 사람인 실데이터(source === "saramin")가 있을 때만 출처 표기. 샘플 데이터만 쓰는 지금은 표시되지 않음 */}
+            {hasSaraminSource(jobs) && (
+              <a
+                className={styles.attribution}
+                href="https://www.saramin.co.kr"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Powered by 취업 사람인
+              </a>
+            )}
+          </p>
 
           {visibleJobs.length > 0 ? (
             <ul className={styles.list}>
               {paged.items.map((job) => (
-                <JobCard
+                <JobRow
                   key={job.id}
                   job={job}
                   selected={job.id === selectedJobId}
                   compared={compareIds.includes(job.id)}
+                  saved={savedState.saved.has(job.id)}
+                  savePending={savedState.pending.has(job.id)}
                   showSource={!isSample}
                   onToggleCompare={onToggleCompare}
                   onAnalyze={onAnalyze}

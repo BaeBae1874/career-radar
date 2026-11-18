@@ -104,7 +104,7 @@ test("close-type 2 / 3 / 4 → 문구, 원본 정보 보존", () => {
   for (const [code, label] of cases) {
     const p = mapSaraminJob(sample({ "close-type": { code, name: "x" } }), { now: NOW });
     assert.equal(p.deadline, label);
-    assert.equal(p.closeType, code);
+    assert.equal(p.closeTypeCode, code); // 사람인 원래 코드 (closeType은 정리된 값: deadline/rolling/always/occasional)
     assert.equal(p.closeTypeName, label);
     assert.ok(p.expirationTimestamp > 0); // 원본 마감 시각은 그대로 보존
   }

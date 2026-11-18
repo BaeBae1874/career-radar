@@ -1,4 +1,5 @@
-import { extractSections } from "./sections";
+import { extractSections } from "./sections.js";
+import { addDaysIso, kstToday } from "../../../lib/schedule.js";
 
 /**
  * 사람인 Open API 승인 전까지 사용하는 샘플 채용공고.
@@ -46,7 +47,9 @@ const RAW_SAMPLE_JOBS = [
     source: "사람인",
     originalUrl: "https://www.saramin.co.kr/",
     keywords: ["CRM", "메시지 마케팅", "성과 분석"],
-    description: `주요 업무
+    description: `근무기간: 2027년 1월부터 6개월
+
+주요 업무
 - 선물하기 서비스 이용 고객 데이터를 바탕으로 타깃 CRM 캠페인을 기획하고 운영합니다.
 - 앱푸시, 알림 메시지 등 채널별 메시지 콘텐츠를 작성합니다.
 - 캠페인 성과(오픈율, 전환율)를 정리하고 개선점을 제안합니다.
@@ -204,7 +207,9 @@ const RAW_SAMPLE_JOBS = [
     source: "사람인",
     originalUrl: "https://www.saramin.co.kr/",
     keywords: ["데이터 분석", "SQL", "A/B 테스트"],
-    description: `주요 업무
+    description: `근무기간: 3개월 (2027.01.04 ~ 2027.04.02)
+
+주요 업무
 - 서비스 핵심 지표를 정의하고 대시보드로 정리합니다.
 - SQL로 필요한 데이터를 추출해 분석 보고서를 작성합니다.
 - A/B 테스트 결과를 정리해 기획팀에 공유합니다.
@@ -430,3 +435,45 @@ export const SAMPLE_JOBS = RAW_SAMPLE_JOBS.map((job) => ({
   ...job,
   ...extractSections(job.description),
 }));
+
+/**
+ * 샘플 모집 일정 (UI 확인용 가상 값). 날짜는 "오늘(한국 날짜)로부터 며칠"로 두고 요청할 때 계산한다
+ * → 시간이 지나도 샘플이 모두 마감으로 바뀌지 않는다.
+ * start/end: 오늘 기준 일수, closeType: 채용시(rolling)·상시(always)·수시(occasional)
+ * workPeriod는 본문에 근무기간이 적힌 인턴 샘플(1, 3)에만 (나머지는 추측해서 넣지 않음)
+ */
+const SAMPLE_SCHEDULES = {
+  "sample-1": { start: -2, end: 14, workPeriod: "2027년 1월부터 6개월" },
+  "sample-2": { end: 12 },
+  "sample-7": { start: -5, end: 1 },
+  "sample-6": { closeType: "rolling" },
+  "sample-8": { start: -10, end: 0 },
+  "sample-9": { closeType: "always" },
+  "sample-3": { start: -1, end: 3, workPeriod: "3개월 (2027.01.04 ~ 2027.04.02)" },
+  "sample-10": { closeType: "occasional" },
+  "sample-11": { start: -7, end: 20 },
+  "sample-5": { closeType: "rolling" },
+  "sample-12": { end: 9 },
+  "sample-13": { closeType: "always" },
+  "sample-14": { start: 0, end: 6 },
+  "sample-15": { start: -20, end: -1 },
+  "sample-16": { start: -3, end: 18 },
+};
+
+/** 샘플 공고 + 오늘 기준 모집 일정 (now: 테스트용) */
+export function getSampleJobs(now = Date.now()) {
+  const today = kstToday(now);
+  return SAMPLE_JOBS.map((job) => {
+    const spec = SAMPLE_SCHEDULES[job.id];
+    if (!spec) return job;
+    const schedule = {};
+    if (Number.isInteger(spec.start)) schedule.applicationStartDate = addDaysIso(today, spec.start);
+    if (Number.isInteger(spec.end)) {
+      schedule.applicationEndDate = addDaysIso(today, spec.end);
+      schedule.closeType = "deadline";
+    }
+    if (spec.closeType) schedule.closeType = spec.closeType;
+    if (spec.workPeriod) schedule.workPeriod = spec.workPeriod;
+    return { ...job, ...schedule };
+  });
+}

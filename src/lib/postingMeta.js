@@ -60,6 +60,7 @@ export function matchesEmploymentFilter(posting, filter) {
 const SOURCE_LABELS = {
   saramin: "사람인",
   sample: "샘플 데이터",
+  custom: "직접 추가한 공고",
 };
 
 /**

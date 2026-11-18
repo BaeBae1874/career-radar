@@ -1,22 +1,31 @@
 .page {
+  /* ───── Design tokens: 중립색 대부분 + 포인트 색 1개 ───── */
+  /* 면 3단계: 페이지 배경(옅은 회색) / 콘텐츠 surface(흰색) / hover·선택(조금 더 진한 회색) */
   --bg: #ffffff;
-  --bg-subtle: #f7f8fa;
-  --border: #e5e8eb;
-  --border-strong: #d1d6db;
-  --text: #191f28;
-  --text-body: #333d4b;
-  --text-sub: #6b7684;
-  --text-muted: #8b95a1;
-  --primary: #3b5bdb;
+  --bg-page: #f7f8fa;
+  --surface: #ffffff;
+  --bg-subtle: #f3f4f6; /* hover·선택·태그 */
+  --border: #e5e7eb; /* 기본 구분선·surface 외곽 (1px) */
+  --border-strong: #d6dade; /* 입력칸·outline 버튼·표 머리글 */
+  --text: #1b1e24; /* 직무명·제목 */
+  --text-body: #3d4450; /* 본문 */
+  --text-sub: #6b7280; /* 회사명·메타·라벨 */
+  --text-muted: #9aa1ab; /* placeholder·보조 숫자 */
+  --primary: #3b5bdb; /* 포인트 색: 주요 CTA·선택·활성 필터·핵심 숫자에만 */
   --primary-hover: #2f4ac0;
   --primary-soft: #eef2ff;
+  --bg-accent: #f6f8ff;
+  --border-accent: #e3e9fb;
+  --danger: #c4320a; /* 입력 오류에만 */
+  /* 보조 강조(warm amber): "눈여겨볼 특별 조건"에만. 장식용으로 쓰지 않음
+     글자는 작은 태그에서도 읽히도록 border보다 한 단계 진하게 */
+  --special-text: #9a6700;
+  --special-border: #e9c46a;
+  --special-bg: #fff7df;
+  --radius: 8px; /* surface 모서리 (작게) */
+  --header-h: 60px;
   --max: 1040px; /* 헤더·본문·푸터·하단 비교 바 공통 폭 */
-  /* 레이어: 페이지(거의 흰색) → 핵심 카드(흰색, 꼭 필요한 곳만) → 강조(아주 연한 파랑, 최소한) */
-  --bg-page: #fafbfc;
-  --surface: #ffffff;
-  --bg-accent: #f8faff;
-  --border-accent: #e6ecfa;
-  --radius: 12px;
+  /* 글자 크기 단계: 12 / 13 / 14 / 15 / 17 / 20 / 24 */
 
   flex: 1;
   display: flex;
@@ -26,6 +35,13 @@
   font-family: var(--font-geist-sans), "Pretendard", "Apple SD Gothic Neo",
     "Noto Sans KR", "Malgun Gothic", sans-serif;
   word-break: keep-all;
+}
+
+/* 비교 화면: 회색 페이지 + 흰 상자 대신 페이지 전체가 흰 작업 공간
+   (저장함·검색·분석은 회색 페이지 → 흰 surface 그대로) */
+.page.pageWorkspace {
+  --bg-page: var(--surface);
+  background: var(--surface);
 }
 
 /* ───── Top bar ───── */
@@ -40,7 +56,7 @@
 .topbarInner {
   max-width: var(--max);
   margin: 0 auto;
-  height: 60px;
+  height: var(--header-h);
   padding: 0 24px;
   display: flex;
   align-items: center;
@@ -48,28 +64,11 @@
   gap: 16px;
 }
 
-.topbarRight {
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.headerMeta {
-  font-size: 13px;
-  color: var(--text-sub);
-  white-space: nowrap;
-}
-
-.headerMeta strong {
-  color: var(--primary);
-}
-
 /* 로고 = 검색 첫 화면으로 (별도 홈 메뉴 없음) */
 .logo {
   font: inherit;
-  font-size: 18px;
-  font-weight: 800;
+  font-size: 17px;
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text);
   background: none;
@@ -89,6 +88,52 @@
   .logo:hover {
     opacity: 0.75;
   }
+}
+
+/* 왼쪽: 로고 + 메인 메뉴 / 오른쪽: secondary action + (다음 단계) 계정 영역 */
+.topbarLeft {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  min-width: 0;
+}
+
+.topbarRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 공고 내용 분석: 메인 메뉴보다 약한 작은 outline 버튼 */
+.headerAction {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-body);
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.headerActionActive {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.labelShort {
+  display: none;
+}
+
+/* 로그인 / 저장함 / 계정 메뉴 자리 (다음 단계에서 채움, 지금은 크기 없음) */
+.accountSlot:empty {
+  display: none;
 }
 
 .nav {
@@ -123,7 +168,7 @@
 
 /* 선택 개수 배지: PC에서는 헤더 보조 텍스트가 대신하므로 모바일에서만 */
 .navBadge {
-  display: none;
+  display: inline-block;
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
@@ -157,36 +202,18 @@
 
 /* ───── Hero ───── */
 .hero {
-  padding: 32px 0 16px;
+  padding: 36px 0 16px;
 }
 
 .heroTitle {
-  font-size: 30px;
+  font-size: 20px;
   font-weight: 700;
-  line-height: 1.35;
-  letter-spacing: -0.03em;
-}
-
-.mobileBreak {
-  display: none;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+  color: var(--text);
 }
 
 /* 결과가 있을 때 Hero 축소 */
-.heroCompact {
-  padding: 28px 0 20px;
-}
-
-.heroCompact .heroTitle {
-  font-size: 22px;
-  line-height: 1.4;
-}
-
-.heroDesc {
-  margin-top: 8px;
-  font-size: 16px;
-  line-height: 1.6;
-  color: var(--text-sub);
-}
 
 /* ───── Analyze (input) ───── */
 .analyze {
@@ -330,6 +357,36 @@
   color: var(--primary);
 }
 
+/* 분석 화면 일정: 작은 라벨 + 값 (새 색 없음, 회색 정보 계층) */
+.viewSchedule {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 20px;
+  font-size: 13px;
+}
+
+.viewSchedule > div {
+  display: flex;
+  gap: 8px;
+}
+
+.viewSchedule dt {
+  color: var(--text-sub);
+}
+
+.viewSchedule dd {
+  font-weight: 600;
+  color: var(--text-body);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 직접 추가한 공고 표시: 작은 보조 글씨 */
+.viewSourceNote {
+  font-weight: 500;
+  color: var(--text-sub);
+}
+
 .viewMeta {
   margin-top: 6px;
   display: flex;
@@ -370,7 +427,7 @@
 }
 
 .viewTitle {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -411,6 +468,19 @@
   padding: 9px 16px;
 }
 
+/* 분석 화면 헤더 액션: 원문 공고 보기 + 저장 */
+.viewActions {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.viewActions .linkButton {
+  margin-top: 0;
+}
+
 .collapsedActions {
   margin-top: 20px;
   display: flex;
@@ -418,8 +488,13 @@
   gap: 12px;
 }
 
+/* 분석 결과: 하나의 흰색 surface (분석할 공고 영역과 같은 면) */
 .analysisView .result {
   margin-top: 28px;
+  padding: 24px 28px 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 /* 검색 공고 분석: 제목 없이 범례만 (제목은 화면 상단에 한 번) */
@@ -547,7 +622,7 @@
   align-self: flex-start;
   min-width: 220px;
   font: inherit;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: #fff;
   background: var(--primary);
@@ -604,14 +679,6 @@
   outline-offset: 2px;
 }
 
-.intro {
-  margin-top: 14px;
-  padding: 0 4px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--text-muted);
-}
-
 /* ───── Result ───── */
 .result {
   margin-top: 64px;
@@ -622,8 +689,73 @@
   padding-bottom: 20px;
 }
 
-.result > .section:last-child {
+/* 결과 본문: 왼쪽 원문 정리(main) + 오른쪽 AI 해석(secondary, 320px) */
+.resultGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 0 40px;
+  align-items: start;
+}
+
+.resultMain,
+.resultAside {
+  min-width: 0;
+}
+
+.resultMain > .section:first-child,
+.resultAside > .section:first-child {
+  padding-top: 24px;
+}
+
+.resultMain > .section:last-child,
+.resultAside > .section:last-child {
   padding-bottom: 8px;
+}
+
+/* AI 영역: 카드 없이 얇은 왼쪽 선 + 작은 제목 */
+.resultAside {
+  padding-left: 24px;
+  border-left: 1px solid var(--border);
+}
+
+.resultAside .section {
+  padding-top: 28px;
+}
+
+.resultAside .sectionTitle {
+  font-size: 15px;
+}
+
+.resultAside .section.sectionLead {
+  padding: 24px 0 0;
+  background: none;
+  border-left: none;
+  border-radius: 0;
+}
+
+.resultAside .section.sectionLead .sectionTitle {
+  margin-bottom: 8px;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.resultAside .lead {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.65;
+}
+
+.resultAside .chips li {
+  font-size: 13px;
+  padding: 4px 10px;
+}
+
+.resultAside .role dt {
+  font-size: 14px;
+}
+
+.resultAside .role dd {
+  font-size: 14px;
 }
 
 .resultEyebrow {
@@ -634,7 +766,7 @@
 
 .jobTitle {
   margin-top: 8px;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   line-height: 1.35;
   letter-spacing: -0.03em;
@@ -741,7 +873,7 @@
 }
 
 .lead {
-  font-size: 19px;
+  font-size: 17px;
   font-weight: 500;
   line-height: 1.65;
   color: var(--text);
@@ -752,7 +884,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.6;
   color: var(--text-body);
 }
@@ -895,7 +1027,7 @@
 }
 
 .role dt {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text);
 }
@@ -993,6 +1125,15 @@
 
 /* ───── Tablet ───── */
 @media (max-width: 860px) {
+  .resultGrid {
+    grid-template-columns: 1fr;
+  }
+  .resultAside {
+    margin-top: 32px;
+    padding-left: 0;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
   .section {
     padding-top: 32px;
   }
@@ -1001,7 +1142,7 @@
 /* ───── Mobile ───── */
 @media (max-width: 600px) {
   .logo {
-    font-size: 16px;
+    font-size: 15px;
   }
   .nav {
     gap: 0;
@@ -1014,15 +1155,29 @@
     height: 56px;
     gap: 8px;
   }
-  /* 모바일: 헤더 보조 텍스트는 숨기고 메뉴 배지로만 */
-  .headerMeta {
+  .topbarLeft {
+    gap: 12px;
+  }
+  .headerAction {
+    height: 30px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+  .labelFull {
     display: none;
   }
+  .labelShort {
+    display: inline;
+  }
+  /* 모바일: 헤더 보조 텍스트는 숨기고 메뉴 배지로만 */
   .navBadge {
     display: inline-block;
   }
   .barSpacer {
     height: 124px;
+  }
+  .analysisView .result {
+    padding: 18px 16px 20px;
   }
   .topbarInner,
   .container,
@@ -1034,19 +1189,7 @@
     padding: 24px 0 12px;
   }
   .heroTitle {
-    font-size: 24px;
-  }
-  .mobileBreak {
-    display: inline;
-  }
-  .heroDesc {
-    font-size: 15px;
-  }
-  .heroCompact {
-    padding: 20px 0 16px;
-  }
-  .heroCompact .heroTitle {
-    font-size: 18px;
+    font-size: 17px;
   }
   .analyze {
     padding: 20px 16px;

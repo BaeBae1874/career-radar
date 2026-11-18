@@ -2,11 +2,30 @@
 
 import { useEffect, useRef, useState } from "react";
 import styles from "./JobCompare.module.css";
-import { getComparePoints, getPostingHighlights } from "@/lib/jobInsights";
+import { getComparePoints, getPostingHighlights, isSpecialCondition } from "@/lib/jobInsights";
+import SaveComparisonButton from "./SaveComparisonButton";
+import { CLOSE_TYPE_LABELS, getApplicationSchedule, normalizeCloseType, normalizeWorkPeriod } from "@/lib/schedule";
+
+// 마감 방식: 명시된 값, 없으면 고정 마감일이 있을 때만 "접수 마감일"
+const closeTypeLabel = (j) => {
+  const type = normalizeCloseType(j.closeType) || (j.applicationEndDate ? "deadline" : "");
+  return type ? CLOSE_TYPE_LABELS[type] : "";
+};
 import { recordRecent } from "./recentStore";
 
 export const MAX_COMPARE = 3;
 const BAR_VISIBLE_JOBS = 2; // 하단 바에 제목 chip으로 보여 줄 공고 수
+
+// 선택 순서대로 A / B / C — 하단 바와 비교 화면에서 같은 공고를 같은 글자로 가리킨다
+export const MARKERS = ["A", "B", "C"];
+
+export function Marker({ index }) {
+  return (
+    <span className={styles.marker} aria-hidden="true">
+      {MARKERS[index] ?? index + 1}
+    </span>
+  );
+}
 
 // 공백·대소문자 차이를 무시하고 키워드 비교 ("데이터분석" = "데이터 분석")
 const keyOf = (k) => String(k).replace(/\s+/g, "").toLowerCase();
@@ -58,8 +77,9 @@ function BarChips({ jobs, onRemove }) {
 
   return (
     <ul ref={listRef} className={`${styles.barList} ${isExpanded ? styles.barListExpanded : ""}`}>
-      {visible.map((job) => (
+      {visible.map((job, i) => (
         <li key={job.id}>
+          <Marker index={i} />
           <span className={styles.barJob} title={`${job.company} ${job.title}`}>
             {job.company} {job.title}
           </span>
@@ -155,15 +175,18 @@ export function CompareBar({ jobs, notice, fromPreviousSearch = false, onRemove,
 }
 
 function Lines({ items }) {
-  if (!items?.length) return <span className={styles.none}>공고에 명시되어 있지 않아요.</span>;
+  const list = (items ?? []).filter(isNonEmpty);
+  if (!list.length) return <span className={styles.none}>공고에 명시되어 있지 않아요.</span>;
   return (
     <ul className={styles.lines}>
-      {items.map((t, i) => (
-        <li key={i}>{t}</li>
+      {list.map((t, i) => (
+        <li key={i}>{t.trim()}</li>
       ))}
     </ul>
   );
 }
+
+const isNonEmpty = (t) => typeof t === "string" && t.trim() !== "";
 
 // AI 비교에 보내는 필드 (description 원문은 보내지 않음)
 const toComparePayload = (j) => ({
@@ -221,22 +244,18 @@ function CompareSummary({ jobs, savedSummary = null, onSummary }) {
 
   return (
     <div className={styles.ai} aria-live="polite">
-      <div className={styles.aiHead}>
-        <h3 className={styles.aiTitle}>Career Radar 비교 요약</h3>
-        <span className={styles.aiMark}>AI 해석</span>
-      </div>
-
       {!summary ? (
         <div className={styles.aiIdle}>
           {error && !loading ? (
             // AI 요약만 실패: 비교 화면 전체가 고장 난 것처럼 보이지 않게 (경고색 X)
             <div className={styles.aiFail} role="status">
-              <p className={styles.aiFailTitle}>AI 비교 요약을 불러오지 못했어요.</p>
+              {/* 원인(402·429 등)은 보여 주지 않음. 위·아래 사실 기반 비교는 AI와 무관하게 그대로 */}
+              <p className={styles.aiFailTitle}>AI 요약을 잠시 불러오지 못했어요.</p>
               <p className={styles.aiFailDesc}>
                 {error === "network"
                   ? "인터넷 연결을 확인한 뒤 다시 시도해 주세요. "
                   : ""}
-                30초 비교와 지원 조건은 그대로 확인할 수 있어요.
+                공고 비교 내용은 정상적으로 확인할 수 있어요.
               </p>
             </div>
           ) : (
@@ -259,7 +278,22 @@ function CompareSummary({ jobs, savedSummary = null, onSummary }) {
             <div className={styles.aiRow}>
               <dt>가장 큰 차이</dt>
               <dd>
-                <p className={styles.aiLead}>{summary.mainDifference}</p>
+                {/* 공고마다 한 줄(키워드 · 키워드)이면 A/B/C를 붙여 줄로, 아니면 기존처럼 한 문단 */}
+                {(() => {
+                  const lines = summary.mainDifference.split("\n").filter((t) => t.trim());
+                  return lines.length === jobs.length && lines.length > 1 ? (
+                    <ul className={styles.diffLines}>
+                      {lines.map((line, i) => (
+                        <li key={i}>
+                          <Marker index={i} />
+                          <span>{line}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className={styles.aiLead}>{summary.mainDifference}</p>
+                  );
+                })()}
               </dd>
             </div>
             <div className={styles.aiRow}>
@@ -305,8 +339,8 @@ function CompareSummary({ jobs, savedSummary = null, onSummary }) {
             )}
           </dl>
           <p className={styles.aiNote}>
-            공고에 적힌 업무와 조건만 바탕으로 AI가 해석한 참고 정보예요. 자세한 내용은 아래
-            비교표와 원문 공고를 함께 확인해 주세요.
+            공고에 적힌 업무와 조건만 바탕으로 AI가 해석한 참고 정보예요. 자세한 내용은 아래 상세
+            비교와 원문 공고를 함께 확인해 주세요.
           </p>
         </>
       )}
@@ -314,116 +348,64 @@ function CompareSummary({ jobs, savedSummary = null, onSummary }) {
   );
 }
 
-/** 30초 비교 — 기존 공고 데이터만 사용 (AI 호출·추론 없음) */
-function QuickCompare({ jobs }) {
+/**
+ * 그룹 제목 행 (30초 비교 / 지원 전 먼저 확인 …) — 표 전체 폭
+ * 기본은 제목 + 여백 + 얇은 선. subtle: 펼침 컨트롤이 있는 큰 구분(상세 비교)에만 연한 배경
+ */
+function GroupRow({ id, title, cols, mark, note, action, subtle = false }) {
   return (
-    <section className={styles.fact} aria-labelledby="quick-title">
-      <h2 id="quick-title" className={styles.factTitle}>
-        30초 비교
-      </h2>
-      {/* 공고마다 같은 기준(헤더·근무형태·주요 업무·핵심 키워드)이 같은 높이에 오도록 subgrid로 정렬 */}
-      <div className={`${styles.factGrid} ${styles.quickGrid}`} data-cols={jobs.length}>
-        {jobs.map((j) => {
-          // 주요 업무: 공고 tasks의 첫 번째 항목 그대로
-          const firstTask = j.tasks?.find((t) => isNonEmpty(t));
-          return (
-            <div key={j.id} className={styles.factCol}>
-              <div className={styles.quickHead}>
-                <p className={styles.factCompany}>{j.company}</p>
-                <p className={styles.factJob}>{j.title}</p>
-              </div>
-              <dl className={styles.quickRow}>
-                <dt>근무형태</dt>
-                <dd className={styles.quickStrong}>
-                  {j.employmentType || "-"}
-                </dd>
-              </dl>
-              <dl className={styles.quickRow}>
-                <dt>주요 업무</dt>
-                <dd className={styles.clamp2}>{firstTask ? firstTask.trim() : "-"}</dd>
-              </dl>
-              <dl className={styles.quickRow}>
-                <dt>핵심 키워드</dt>
-                <dd>{j.keywords?.length ? j.keywords.join(" · ") : "-"}</dd>
-              </dl>
-            </div>
-          );
-        })}
-      </div>
-    </section>
+    <tr className={`${styles.groupRow} ${subtle ? styles.groupRowSubtle : ""}`}>
+      <th id={id} scope="colgroup" colSpan={cols + 1}>
+        <span className={styles.groupTitle}>
+          {title}
+          {mark}
+          {note && <span className={styles.groupNote}>{note}</span>}
+        </span>
+        {action}
+      </th>
+    </tr>
   );
 }
 
-/** 지원 전 먼저 확인 — required(필수조건)만 그대로 (preferred는 섞지 않음, 지원 가능 여부는 판단하지 않음) */
-function RequiredCheck({ jobs }) {
+/** 비교 기준 1행: 왼쪽 기준 이름 + 공고별 값 (모바일에서는 기준 아래에 A/B/C 순서로 쌓임) */
+function CriterionRow({ label, jobs, render, className = "" }) {
   return (
-    <section className={`${styles.fact} ${styles.factRequired}`} aria-labelledby="required-title">
-      <h2 id="required-title" className={styles.factTitle}>
-        지원 전 먼저 확인
-      </h2>
-      <p className={styles.factDesc}>각 공고에 적힌 필수 조건이에요. 우대 조건은 아래 상세 비교표에서 볼 수 있어요.</p>
-      <div className={styles.factGrid} data-cols={jobs.length}>
-        {jobs.map((j) => {
-          const required = (j.required ?? []).filter(isNonEmpty);
-          return (
-            <div key={j.id} className={styles.factCol}>
-              <p className={styles.factCompany}>{j.company}</p>
-              <p className={styles.factJobSmall}>{j.title}</p>
-              {required.length ? (
-                <ul className={styles.reqList}>
-                  {required.map((t, i) => (
-                    <li key={i}>{t.trim()}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className={styles.none}>공고에서 별도 필수 조건을 찾지 못했어요.</p>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </section>
+    <tr className={`${styles.row} ${className}`}>
+      <th scope="row" className={styles.labelCell}>
+        {label}
+      </th>
+      {jobs.map((j, i) => (
+        <td key={j.id} data-marker={MARKERS[i]}>
+          {render(j, i)}
+        </td>
+      ))}
+    </tr>
+  );
+}
+
+/** 공고 전체 폭 1행 (AI 요약, 공통 키워드) */
+function WideRow({ label, cols, children }) {
+  return (
+    <tr className={`${styles.row} ${styles.wideRow}`}>
+      {label ? (
+        <>
+          <th scope="row" className={styles.labelCell}>
+            {label}
+          </th>
+          <td colSpan={cols}>{children}</td>
+        </>
+      ) : (
+        <td colSpan={cols + 1}>{children}</td>
+      )}
+    </tr>
   );
 }
 
 /**
- * 공고별 핵심 포인트: 선택한 공고 중 "이 공고에만 있는" 근무형태·필수조건·키워드·우대 도구 (최대 3개, AI 없음)
- * 카드 없이 열만 나눠서 (모바일은 세로 + 얇은 구분선)
+ * 선택한 공고 나란히 비교 — 하나의 비교 작업 공간
+ * 공고(회사·제목)는 sticky 머리글에서 한 번만, 아래는 기준별 행.
+ * 순서: 30초 비교 → 지원 전 먼저 확인 → 이 공고만의 포인트 → AI 비교 요약 → 공통 키워드 → 상세 비교
  */
-function PostingHighlights({ jobs }) {
-  const highlights = getPostingHighlights(jobs);
-  return (
-    <section className={styles.highlights} aria-labelledby="highlights-title">
-      <h2 id="highlights-title" className={styles.factTitle}>
-        공고별 핵심 포인트
-      </h2>
-      <div className={styles.factGrid} data-cols={jobs.length}>
-        {jobs.map((j, i) => {
-          const points = highlights[i]?.points ?? [];
-          return (
-            <div key={j.id} className={styles.factCol}>
-              <p className={styles.factCompany}>{j.company}</p>
-              <p className={styles.factJobSmall}>{j.title}</p>
-              {points.length ? (
-                <ul className={styles.highlightList}>
-                  {points.map((p) => (
-                    <li key={p.text}>{p.text}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className={styles.none}>뚜렷한 고유 조건 없음</p>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-const isNonEmpty = (t) => typeof t === "string" && t.trim() !== "";
-
-/** 선택한 공고 나란히 비교 */
 export function CompareView({
   jobs,
   active = true,
@@ -433,9 +415,8 @@ export function CompareView({
   onBack,
 }) {
   const titleRef = useRef(null);
-  // 상세 비교표: 위에서 핵심을 먼저 보고 필요할 때만 펼치도록 기본 접힘 (client state만, 저장하지 않음)
+  // 상세 비교: 위에서 핵심을 먼저 보고 필요할 때만 펼치도록 기본 접힘 (client state만, 저장하지 않음)
   const [tableOpen, setTableOpen] = useState(false);
-
 
   // 비교 화면이 보일 때마다 제목으로 포커스 이동 (스크린리더·키보드 사용자도 화면 전환을 알 수 있게)
   // (분석 화면에 다녀와도 AI 비교 결과가 유지되도록 숨김 상태로 마운트되어 있음)
@@ -443,22 +424,33 @@ export function CompareView({
     if (active) titleRef.current?.focus({ preventScroll: true });
   }, [active]);
 
+  const cols = jobs.length;
   const common = getCommonKeywords(jobs);
   const commonKeys = new Set(common.map(keyOf));
   const hasCompanyType = jobs.some((j) => j.companyType);
+  const hasCloseType = jobs.some((j) => closeTypeLabel(j));
+  const hasWorkPeriod = jobs.some((j) => normalizeWorkPeriod(j.workPeriod));
+  const highlights = getPostingHighlights(jobs);
 
-  const rows = [
+  // 상세 비교 행 (기존 상세 비교표와 같은 항목)
+  const detailRows = [
     { label: "근무형태", render: (j) => j.employmentType || "-" },
     { label: "경력조건", render: (j) => j.career || "-" },
     { label: "지역", render: (j) => j.location || "-" },
+    // 모집 일정: "11.18 ~ 12.02 · D-14" / "채용시 마감" / 상시·수시 (예전 데이터는 기존 마감 문구)
     {
-      label: "마감일",
-      render: (j) => <span className={styles.deadline}>{j.deadline || "-"}</span>,
+      label: "모집기간",
+      render: (j) => <span className={styles.deadline}>{getApplicationSchedule(j).text || "-"}</span>,
     },
-    // 기업유형은 데이터가 있을 때만 (현재는 샘플 값)
-    ...(hasCompanyType
-      ? [{ label: "기업유형", render: (j) => j.companyType || "-" }]
+    // 마감 방식·근무기간: 하나라도 값이 있는 공고가 있을 때만 행 표시
+    ...(hasCloseType
+      ? [{ label: "마감 방식", render: (j) => closeTypeLabel(j) || "-" }]
       : []),
+    ...(hasWorkPeriod
+      ? [{ label: "근무기간", render: (j) => normalizeWorkPeriod(j.workPeriod) || "-" }]
+      : []),
+    // 기업유형은 데이터가 있을 때만 (현재는 샘플 값)
+    ...(hasCompanyType ? [{ label: "기업유형", render: (j) => j.companyType || "-" }] : []),
     {
       label: "핵심 키워드",
       render: (j) =>
@@ -486,120 +478,234 @@ export function CompareView({
       </button>
 
       <div className={styles.compareHead}>
-        <h1 id="compare-title" className={styles.compareTitle} tabIndex={-1} ref={titleRef}>
-          공고 비교
-        </h1>
-        <p className={styles.summary}>{jobs.length}개의 공고를 비교하고 있어요.</p>
-      </div>
-
-      {/* 정보 순서: 30초 비교 → 지원 전 먼저 확인 → 공고별 핵심 포인트 → AI 비교 요약 → 공통 키워드 → 상세 비교표 */}
-      <QuickCompare jobs={jobs} />
-      <RequiredCheck jobs={jobs} />
-      <PostingHighlights jobs={jobs} />
-
-      {/* 선택 공고가 바뀌면 key가 바뀌어 기존 AI 비교 결과가 초기화된다 */}
-      <CompareSummary
-        key={jobs.map((j) => j.id).join("|")}
-        jobs={jobs}
-        savedSummary={savedSummary}
-        onSummary={onSummary}
-      />
-
-      <div className={styles.common}>
-        <p className={styles.commonLabel}>공통으로 보이는 키워드</p>
-        {common.length ? (
-          <ul className={styles.tags}>
-            {common.map((k) => (
-              <li key={k} className={styles.tagCommon}>
-                {k}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          // 현재 계산은 "선택한 모든 공고에 똑같이 있는 키워드"이므로 그 의미를 그대로 설명
-          <p className={styles.none}>{jobs.length}개 공고 모두에 공통인 키워드는 없어요.</p>
-        )}
-      </div>
-
-      <div className={styles.tableSection}>
-        <h2 className={styles.tableTitle}>상세 비교표</h2>
-        <p className={styles.tableDesc}>
-          근무형태부터 자격요건·우대사항까지 같은 기준으로 자세히 비교해 보세요.
-        </p>
-        {/* 펼치기/접기 모두 같은 위치·크기 (가운데) */}
-        <div className={styles.tableToggleWrap}>
-          <button
-            type="button"
-            className={styles.tableToggle}
-            aria-expanded={tableOpen}
-            aria-controls="compare-table"
-            onClick={() => setTableOpen((v) => !v)}
-          >
-            {tableOpen ? "상세 비교표 접기" : "상세 비교표 펼쳐보기"}
-            <span aria-hidden="true">{tableOpen ? "↑" : "↓"}</span>
-          </button>
+        <div className={styles.compareHeadText}>
+          <h1 id="compare-title" className={styles.compareTitle} tabIndex={-1} ref={titleRef}>
+            공고 비교
+          </h1>
+          <p className={styles.summary}>{cols}개 공고를 같은 기준으로 비교하고 있어요.</p>
         </div>
-        {tableOpen && (
-          <div id="compare-table" className={styles.tableWrap}>
-            <table className={styles.table} data-cols={jobs.length}>
-              <thead>
-                <tr>
-                  <th scope="col" className={styles.labelCell}>
-                    <span className={styles.srOnly}>항목</span>
-                  </th>
-                  {jobs.map((j) => (
-                    <th key={j.id} scope="col" className={styles.jobHead}>
-                      <span className={styles.company}>{j.company}</span>
-                      <span className={styles.title}>{j.title}</span>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.label}>
-                    <th scope="row" className={styles.labelCell}>
-                      {row.label}
-                    </th>
-                    {jobs.map((j) => (
-                      <td key={j.id}>{row.render(j)}</td>
-                    ))}
-                  </tr>
-                ))}
-                <tr className={styles.actionRow}>
-                  <th scope="row" className={styles.labelCell}>
-                    <span className={styles.srOnly}>공고 보기</span>
-                  </th>
-                  {jobs.map((j) => (
-                    <td key={j.id}>
-                      <div className={styles.actions}>
-                        <button
-                          type="button"
-                          className={styles.analyzeButton}
-                          onClick={() => onAnalyze(j)}
-                        >
-                          Career Radar 분석
-                        </button>
-                        {j.originalUrl && (
-                          <a
-                            className={styles.linkButton}
-                            href={j.originalUrl}
-                            onClick={() => recordRecent(j)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            원문 공고 보기 <span aria-hidden="true">↗</span>
-                          </a>
-                        )}
-                      </div>
-                    </td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
+        {/* 비교 저장: 사실 데이터만 저장 (AI 요약 제외), 눌렀을 때만 */}
+        <SaveComparisonButton jobs={jobs} active={active} />
       </div>
+
+      {/* 모바일 전용: 표 머리글 대신 A/B/C가 어떤 공고인지 */}
+      <ol className={styles.legend} aria-label="비교 중인 공고">
+        {jobs.map((j, i) => (
+          <li key={j.id}>
+            <Marker index={i} />
+            <span className={styles.legendText}>
+              <span className={styles.legendCompany}>{j.company}</span>
+              <span className={styles.legendTitle}>{j.title}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+
+      <table className={styles.ws} data-cols={cols}>
+        <caption className={styles.srOnly}>선택한 공고 {cols}개 비교</caption>
+        <colgroup>
+          <col className={styles.labelCol} />
+          {jobs.map((j) => (
+            <col key={j.id} />
+          ))}
+        </colgroup>
+        {/* 공고 머리글: 한 번만, 스크롤해도 위에 고정 */}
+        <thead>
+          <tr>
+            <th scope="col" className={styles.labelCell}>
+              <span className={styles.srOnly}>비교 기준</span>
+            </th>
+            {jobs.map((j, i) => (
+              <th key={j.id} scope="col" className={styles.jobHead}>
+                <span className={styles.jobHeadTop}>
+                  <Marker index={i} />
+                  <span className={styles.company}>{j.company}</span>
+                </span>
+                <span className={styles.title}>{j.title}</span>
+              </th>
+            ))}
+          </tr>
+        </thead>
+
+        {/* ① 30초 비교 — 공고 데이터 그대로 (AI 없음) */}
+        <tbody>
+          <GroupRow id="quick-title" title="30초 비교" cols={cols} />
+          <CriterionRow
+            label="하는 일"
+            jobs={jobs}
+            render={(j) => {
+              const firstTask = j.tasks?.find(isNonEmpty);
+              return <span className={styles.clamp2}>{firstTask ? firstTask.trim() : "-"}</span>;
+            }}
+          />
+          <CriterionRow
+            label="근무형태"
+            jobs={jobs}
+            render={(j) => <span className={styles.strong}>{j.employmentType || "-"}</span>}
+          />
+          <CriterionRow
+            label="핵심 키워드"
+            jobs={jobs}
+            render={(j) => (j.keywords?.length ? j.keywords.join(" · ") : "-")}
+          />
+        </tbody>
+
+        {/* ② 지원 전 먼저 확인 — required(필수조건)만 그대로 (우대는 상세 비교에서) */}
+        <tbody>
+          <GroupRow id="required-title" title="지원 전 먼저 확인" cols={cols} />
+          <CriterionRow
+            label="필수 조건"
+            jobs={jobs}
+            render={(j) => {
+              const required = (j.required ?? []).filter(isNonEmpty);
+              return required.length ? (
+                <ul className={styles.reqList}>
+                  {required.map((t, k) => (
+                    <li key={k}>{t.trim()}</li>
+                  ))}
+                </ul>
+              ) : (
+                <span className={styles.none}>공고에서 별도 필수 조건을 찾지 못했어요.</span>
+              );
+            }}
+          />
+        </tbody>
+
+        {/* ③ 이 공고만의 포인트 — 다른 선택 공고에 없는 근무형태·필수조건·키워드·우대 도구 (AI 없음) */}
+        <tbody>
+          <GroupRow
+            id="highlights-title"
+            title="이 공고만의 포인트"
+            note="다른 선택 공고에는 없는 조건"
+            cols={cols}
+          />
+          <CriterionRow
+            label="핵심 포인트"
+            jobs={jobs}
+            className={styles.rowHighlight}
+            render={(j, i) => {
+              const points = highlights[i]?.points ?? [];
+              return (
+                // PC: 각 열 위에 A/B/C를 한 번 더 붙여 어느 공고의 포인트인지 바로 연결
+                <div className={styles.hlCell}>
+                  <Marker index={i} />
+                  {points.length ? (
+                    <ul className={styles.highlightList}>
+                      {/* 업무 키워드 차이는 그대로, 특별 조건(필수조건·우대·전환 등)만 amber */}
+                      {points.map((p) => (
+                        <li
+                          key={p.text}
+                          className={
+                            p.kind !== "keyword" && isSpecialCondition(p.text)
+                              ? styles.highlightSpecial
+                              : undefined
+                          }
+                        >
+                          <span>{p.text}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span className={styles.none}>뚜렷한 고유 조건 없음</span>
+                  )}
+                </div>
+              );
+            }}
+          />
+        </tbody>
+
+        {/* ④ Career Radar 비교 요약 — 보조 정보 (버튼을 눌렀을 때만 AI 호출) */}
+        <tbody>
+          <GroupRow
+            id="ai-title"
+            title="Career Radar 비교 요약"
+            cols={cols}
+            mark={<span className={styles.aiMark}>AI 해석</span>}
+          />
+          <WideRow cols={cols}>
+            {/* 선택 공고가 바뀌면 key가 바뀌어 기존 AI 비교 결과가 초기화된다 */}
+            <CompareSummary
+              key={jobs.map((j) => j.id).join("|")}
+              jobs={jobs}
+              savedSummary={savedSummary}
+              onSummary={onSummary}
+            />
+          </WideRow>
+        </tbody>
+
+        {/* ⑤ 공통 키워드 */}
+        <tbody>
+          <WideRow label="공통 키워드" cols={cols}>
+            {common.length ? (
+              <ul className={styles.tags}>
+                {common.map((k) => (
+                  <li key={k} className={styles.tagCommon}>
+                    {k}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              // 현재 계산은 "선택한 모든 공고에 똑같이 있는 키워드"이므로 그 의미를 그대로 설명
+              <span className={styles.none}>{cols}개 공고 모두에 공통인 키워드는 없어요.</span>
+            )}
+          </WideRow>
+        </tbody>
+
+        {/* ⑥ 상세 비교 — 기본 접힘 */}
+        <tbody id="compare-table">
+          <GroupRow
+            id="detail-title"
+            title="상세 비교"
+            cols={cols}
+            subtle
+            action={
+              <button
+                type="button"
+                className={styles.groupToggle}
+                aria-expanded={tableOpen}
+                aria-controls="compare-table"
+                onClick={() => setTableOpen((v) => !v)}
+              >
+                {tableOpen ? "상세 비교 접기" : "근무형태부터 우대사항까지 펼쳐보기"}
+                <span aria-hidden="true">{tableOpen ? "↑" : "↓"}</span>
+              </button>
+            }
+          />
+          {tableOpen &&
+            detailRows.map((row) => (
+              <CriterionRow key={row.label} label={row.label} jobs={jobs} render={row.render} />
+            ))}
+        </tbody>
+
+        {/* 공고별 이동: 항상 표시 */}
+        <tfoot>
+          <tr className={styles.actionRow}>
+            <th scope="row" className={styles.labelCell}>
+              <span className={styles.srOnly}>공고 보기</span>
+            </th>
+            {jobs.map((j, i) => (
+              <td key={j.id} data-marker={MARKERS[i]}>
+                <div className={styles.actions}>
+                  {j.originalUrl && (
+                    <a
+                      className={styles.linkButton}
+                      href={j.originalUrl}
+                      onClick={() => recordRecent(j)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      원문 공고 보기 <span aria-hidden="true">↗</span>
+                    </a>
+                  )}
+                  <button type="button" className={styles.analyzeButton} onClick={() => onAnalyze(j)}>
+                    공고 분석
+                  </button>
+                </div>
+              </td>
+            ))}
+          </tr>
+        </tfoot>
+      </table>
     </section>
   );
 }

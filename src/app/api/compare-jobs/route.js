@@ -1,11 +1,13 @@
 import { requestStructured } from "@/lib/openrouter";
 import { polishText } from "@/lib/polishText";
+import { normalizeMainDifference } from "@/lib/compareText";
 
 // 선택한 채용공고 2~3개의 핵심 차이를 AI로 요약하는 비교 전용 API.
 // OpenRouter 호출·재시도·로그는 src/lib/openrouter.js를 /api/analyze-job과 함께 사용한다.
 
-// 모델별 최대 대기 시간 (OPENROUTER_MODELS 순서: Solar Mini 4 → Gemma free). 최악의 경우 약 57초
-const MODEL_TIMEOUTS_MS = [25000, 32000];
+// 요청별 최대 대기 시간 (첫 요청, 조건부 재시도 1번). 모델 목록·fallback은 src/lib/openrouter.js (무료 모델)
+// 최악의 경우 약 30 + 4(대기) + 25 = 59초
+const MODEL_TIMEOUTS_MS = [30000, 25000];
 
 const MIN_JOBS = 2;
 const MAX_JOBS = 3;
@@ -53,12 +55,23 @@ const SYSTEM_PROMPT = `당신은 채용 서비스에서 여러 채용공고의 �
 10. 필수조건·우대조건·주요업무 어디에도 없는 기술, 경험, 자격을 새로 만들지 않습니다.
 11. 조건을 줄여 쓸 때도 의미를 바꾸지 않습니다. (예: "SQL 기본 문법을 이해"를 "SQL 사용 경험"으로 바꾸지 않음)
 
+짧고 명확하게 (모든 필드 공통):
+- 한 항목에 한 가지 정보만 담습니다. 한 줄에 여러 설명을 이어 붙이지 않습니다.
+- 취업 준비생이 한눈에 판단할 수 있게, 어려운 전문용어 대신 공고에 적힌 쉬운 표현을 씁니다.
+- 같은 내용을 여러 필드에서 반복하지 않습니다. (mainDifference에 쓴 키워드를 bestFor·watchPoints에서 다시 나열하지 않음)
+- 직무 범위를 단정하지 않습니다. "항상", "오직", "~만 담당", "반드시"(필수조건 원문 표현 제외) 같은 말을 쓰지 않습니다.
+
 필드별 작성 방법:
-- mainDifference: 업무 초점 차이를 먼저, 필요하면 필수 조건 차이를 짧게. 최대 2~3개의 짧은 요약 구, 전체 120자 안팎.
-  - 회사명·근무지를 반복하지 않습니다. 공고는 "첫 번째", "두 번째", "세 번째"로 가리킵니다.
-  - 근무형태·지역·마감일처럼 30초 비교 표에서 이미 보이는 정보는 다시 나열하지 않습니다.
-  - 예: "첫 번째는 CRM 고객 데이터 기반 캠페인 운영 중심. 두 번째는 광고 집행·성과 분석 중심. 세 번째는 SNS 콘텐츠 기획·제작 중심."
-  - 예: "CRM 고객 데이터 기반 캠페인 운영 / 광고 집행·성과 분석 / SNS 콘텐츠 기획·제작으로 업무 초점이 구분됨. 필수 조건도 졸업 시점 · 학사 이상 · 포트폴리오 제출로 서로 다름."
+- mainDifference: 각 공고가 "어떤 방향의 일인지" 한눈에 보이는 키워드 줄. 공고마다 한 줄씩, 입력 순서대로, 줄바꿈(\\n)으로 구분합니다.
+  - 한 줄은 그 공고의 업무 초점을 나타내는 키워드 2~4개를 " · "로 이은 것입니다. 한 줄 30자 안팎.
+  - 줄 앞에 "첫 번째는", "A:", "1." 같은 번호·이름을 붙이지 않습니다. (화면에서 A/B/C를 붙여 보여 줌)
+  - 문장으로 쓰지 않고, "~중심", "~함", "~입니다" 같은 어미나 마침표를 붙이지 않습니다.
+  - 키워드는 그 공고의 주요업무(tasks)·필수조건(required)·우대조건(preferred)에 실제로 있는 표현에서만 고릅니다.
+    없는 기술·업무를 만들거나, 억지로 개수를 채우지 않습니다. 근거가 하나뿐이면 키워드 1개도 괜찮습니다.
+  - 회사명·근무지·근무형태·마감일처럼 30초 비교 표에 이미 보이는 정보는 넣지 않습니다.
+  - 예 (공고 3개):
+    "React · 신규 기능 · 반응형 UI\\nNext.js · TypeScript · 어드민 · API 연동\\n운영 · 유지보수 · HTML/CSS/JavaScript"
+  - 나쁜 예: "첫 번째는 React 신규 기능 화면 · 반응형 UI 구현 중심, 두 번째는 Next.js·TypeScript 어드민 화면 · API 연동 중심."
 - commonPoints: 사용자의 직무 선택이나 지원 판단에 실제로 도움이 되는 공통점만 0~3개, 짧은 요약형으로 씁니다.
   - 사용자의 공고 선택이나 지원 전 판단에 도움이 되지 않는 자명한 공통점은 출력하지 않습니다.
   - 아래 우선순위에 해당하고 공고에 실제 근거가 있을 때만 씁니다.
@@ -71,8 +84,9 @@ const SYSTEM_PROMPT = `당신은 채용 서비스에서 여러 채용공고의 �
   - 개수를 채우려고 쓰지 않습니다. 의미 있는 공통점이 2개면 2개, 1개면 1개, 없으면 빈 배열로 둡니다.
 - bestFor: 공고마다 하나씩, 입력된 순서대로 씁니다.
   - jobTitle에는 입력된 공고의 title을 글자 그대로 복사합니다.
-  - summary는 주요업무를 바탕으로 이 공고의 업무 초점만 한 줄 요약형으로 씁니다. (한 문장 이하)
-    예: "로고 · 패키지 · 브랜드 가이드 중심", "상세페이지 · 배너 · SNS 이미지 제작 중심", "모바일 UI · 사용자 인터뷰 · 개선안 도출 중심"
+  - summary는 주요업무를 바탕으로, 이 공고에서 주로 하게 될 일을 짧은 한 구절로 씁니다. (한 문장 이하, 40자 안팎)
+    mainDifference의 키워드를 그대로 다시 나열하지 말고, 그 일이 어떤 흐름인지 쉽게 풀어 씁니다.
+    예: "새 기능 화면을 처음부터 만드는 일이 많음", "기존 서비스 화면을 고치고 관리하는 일이 많음", "브랜드 로고·패키지를 직접 디자인하는 일"
   - 지원자를 주어로 쓰거나("~한 분에게 맞음", "~경험이 있는 분") 지원자 성향을 판단하지 않습니다.
 - watchPoints: 지원 전에 실제로 확인해야 할 조건 차이만 0~3개, "업무 이름 — 조건 · 조건" 형식의 짧은 요약형으로 씁니다.
   - 예: "브랜드 디자인 — 시각디자인 전공 학사 · 포트폴리오 필수", "콘텐츠 디자인 — Photoshop·Illustrator 사용 필수", "UX/UI 디자인 — Figma 기본 사용 · 포트폴리오 필수"
@@ -86,9 +100,9 @@ const SYSTEM_PROMPT = `당신은 채용 서비스에서 여러 채용공고의 �
 - 아래의 모든 키를 빠짐없이, 키 이름 그대로 씁니다. 키를 추가하거나 이름을 바꾸지 않습니다.
 - 문자열은 큰따옴표로 감싸고, 배열 필드는 내용이 없어도 빈 배열 []로 둡니다.
 {
-  "mainDifference": "업무 초점과 필수 조건의 핵심 차이 (짧은 요약 구 2~3개)",
+  "mainDifference": "공고마다 한 줄: 업무 초점 키워드 2~4개를 \" · \"로 연결, 줄바꿈(\\n)으로 구분",
   "commonPoints": ["의미 있는 공통점 (짧은 요약형)"],
-  "bestFor": [{ "jobTitle": "공고 제목 그대로", "summary": "업무 초점 한 줄 요약" }],
+  "bestFor": [{ "jobTitle": "공고 제목 그대로", "summary": "주로 하게 될 일을 쉬운 한 구절로" }],
   "watchPoints": ["업무 이름 — 확인할 조건 · 조건"]
 }`;
 
@@ -176,13 +190,6 @@ const CONDITION_WORD = /근무형태|인턴|정규직|계약직|필수|우대|�
 const isTrivialWatch = (t) =>
   COMPANY_DIFF.test(t) || (REGION_DIFF.test(t) && !CONDITION_WORD.test(t));
 
-// mainDifference: 최대 3문장까지만 (긴 문단 방지)
-const MAX_DIFF_SENTENCES = 3;
-const limitSentences = (text) => {
-  const parts = text.match(/[^.!?]+[.!?]+["')]*\s*|[^.!?]+$/g) ?? [text];
-  return parts.slice(0, MAX_DIFF_SENTENCES).join("").trim();
-};
-
 const TRIVIAL_COMMON = [
   /회사\s*(이름|명).{0,12}(직무|제목)/, // "회사 이름과 직무 제목을 제시"
   /(직무명|직무\s*제목|공고\s*제목|제목).{0,10}(적혀|제시|명시|표시)/, // "제목에 직무명이 적혀 있어요"
@@ -216,7 +223,13 @@ function normalizeResult(raw, jobs) {
 
   return {
     mainDifference: isMeaningful(raw.mainDifference)
-      ? limitSentences(polishText(raw.mainDifference, source))
+      ? normalizeMainDifference(
+          raw.mainDifference
+            .split(/\r?\n/)
+            .map((line) => polishText(line, source))
+            .join("\n"),
+          jobs.length
+        )
       : "",
     commonPoints: toStringList(raw.commonPoints, 3)
       .filter((t) => !TRIVIAL_COMMON.some((re) => re.test(t)))
@@ -232,10 +245,7 @@ export async function POST(request) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     console.error("[compare-jobs] OPENROUTER_API_KEY is not set");
-    return Response.json(
-      { error: "서버에 AI 설정이 되어 있지 않아요. 관리자에게 문의해 주세요." },
-      { status: 500 }
-    );
+    return failureResponse("auth");
   }
 
   const body = await request.json().catch(() => null);
@@ -272,23 +282,10 @@ export async function POST(request) {
   return failureResponse(outcome.reason);
 }
 
-// 실패 응답 (형태는 기존과 같은 { error })
+// 실패 응답 (형태는 기존과 같은 { error }). 사용자에게는 원인(402·429·OpenRouter 등)을 보이지 않고 짧은 안내만
+// status로만 구분: rate_limit 429 / timeout 504 / 그 밖 503. 자세한 원인은 서버 로그(openrouter.js)에만
 function failureResponse(reason) {
-  if (reason === "auth") {
-    console.error("[compare-jobs] OpenRouter authentication failed");
-    return Response.json(
-      { error: "AI 서비스 인증에 실패했어요. 서버 설정을 확인해 주세요." },
-      { status: 500 }
-    );
-  }
-  if (reason === "rate_limit") {
-    return Response.json(
-      { error: "요청이 많아 잠시 비교할 수 없어요. 조금 뒤 다시 시도해 주세요." },
-      { status: 429 }
-    );
-  }
-  return Response.json(
-    { error: "AI 비교 요약을 불러오지 못했어요. 잠시 후 다시 시도해 주세요." },
-    { status: reason === "timeout" ? 504 : 502 }
-  );
+  if (reason === "auth") console.error("[compare-jobs] OpenRouter authentication failed");
+  const status = reason === "rate_limit" ? 429 : reason === "timeout" ? 504 : 503;
+  return Response.json({ error: "AI 요약을 잠시 불러오지 못했어요. 공고 비교 내용은 정상적으로 확인할 수 있어요.", aiUnavailable: true }, { status });
 }

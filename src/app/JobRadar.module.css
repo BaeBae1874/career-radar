@@ -1,26 +1,32 @@
 /* 색상 변수(--text, --primary 등)는 page.module.css의 .page에서 상속받는다. */
 
-/* 검색 현황: 카드 없이 한 흐름으로 (제목·총 건수 → 보조 통계 → 필터 → 키워드·기업유형) */
+/* 검색 결과 요약 한 줄 + 근무형태 필터 (가로, 넘치면 줄바꿈) */
 .radar {
-  padding: 4px 0 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 4px 0 12px;
 }
 
-/* 검색어 · 건수 한 줄 */
-.title {
+.summary {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0 8px;
-  font-size: 21px;
-  font-weight: 700;
-  line-height: 1.35;
-  letter-spacing: -0.02em;
-  color: var(--text);
+  gap: 2px 12px;
+  min-width: 0;
 }
 
-.titleSep {
-  color: var(--text-muted);
-  font-weight: 400;
+.title {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: var(--text);
 }
 
 .total {
@@ -32,21 +38,19 @@
   color: var(--text-body);
 }
 
-/* 결과 건수: 파란 숫자로 가장 먼저 보이게 */
+/* 결과 건수: 포인트 색은 숫자에만 */
 .totalNum {
   margin-right: 1px;
-  font-size: 24px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--primary);
   font-variant-numeric: tabular-nums;
 }
 
-/* 보조 통계: 인턴 1 · 정규직 1 · 계약직 0 · 신입 2 */
+/* 보조 통계: 인턴 1 · 정규직 2 · 계약직 0 */
 .stats {
-  margin-top: 4px;
   display: flex;
   flex-wrap: wrap;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-sub);
 }
 
@@ -57,92 +61,26 @@
 
 .stat + .stat::before {
   content: "·";
-  margin: 0 8px;
+  margin: 0 6px;
   color: var(--text-muted);
 }
 
 .stat dd {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-body);
   font-variant-numeric: tabular-nums;
 }
 
 .filterSlot {
-  margin-top: 14px;
-}
-
-/* 키워드·기업유형: 라벨 + 텍스트 한 줄씩 */
-.meta {
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.metaRow {
-  display: grid;
-  grid-template-columns: 120px minmax(0, 1fr);
-  gap: 12px;
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.metaRow dt {
-  font-weight: 600;
-  color: var(--text-sub);
-}
-
-.metaRow dd {
-  color: var(--text-body);
-}
-
-.metaKeywords {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.metaKeywords > span + span::before {
-  content: "·";
-  margin: 0 8px;
-  color: var(--text-muted);
-}
-
-.keywordCount {
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.metaKeywords > .keywordMore::before {
-  content: "";
-  margin: 0 6px;
-}
-
-.keywordMore {
-  color: var(--text-muted);
-}
-
-/* 기업유형: 작은 보조 정보 */
-.metaSub {
-  font-size: 13px;
-}
-
-.metaSub dt,
-.metaSub dd {
-  color: var(--text-muted);
+  flex-shrink: 0;
 }
 
 /* ───── Mobile ───── */
 @media (max-width: 600px) {
   .title {
-    font-size: 18px;
+    font-size: 15px;
   }
-  .totalNum {
-    font-size: 21px;
-  }
-  .metaRow {
-    grid-template-columns: 1fr;
-    gap: 2px;
+  .filterSlot {
+    width: 100%;
   }
 }

@@ -14,9 +14,14 @@
  * - 응답 형태가 조금 달라도({ code, name } 객체 / 문자열) 깨지지 않게 방어한다.
  */
 
+import { kstDateFromMs } from "./schedule.js";
+
 export const SARAMIN_SOURCE = "saramin";
 
 // 사람인 close-type 코드 → 표시 문구 (1은 접수 마감일 → 날짜로 D-day 계산)
+// 사람인 close-type 코드 → Career Radar 마감 방식 (src/lib/schedule.js의 CLOSE_TYPES)
+export const SARAMIN_CLOSE_TYPES = { 1: "deadline", 2: "rolling", 3: "always", 4: "occasional" };
+
 export const CLOSE_TYPE_LABELS = {
   1: "접수 마감일",
   2: "채용시 마감",
@@ -115,6 +120,10 @@ export function mapSaraminJob(job, { now = Date.now() } = {}) {
   const expirationMs =
     toTimestampMs(job["expiration-timestamp"]) ?? toTimestampMs(job["expiration-date"]);
   const locations = splitList(nameOf(position.location)).map(cleanLocation);
+  const openingMs = toTimestampMs(job["opening-timestamp"]);
+  const closeCode = Number(closeTypeCode);
+  // close-type: 1 접수 마감일 / 2 채용시 / 3 상시 / 4 수시 → Career Radar 내부 값 (없으면 마감 시각이 있을 때만 접수 마감일)
+  const closeType = SARAMIN_CLOSE_TYPES[closeCode] ?? (expirationMs !== null ? "deadline" : "");
   const employmentTypes = splitList(nameOf(position["job-type"]));
   const experience = position["experience-level"];
 
@@ -127,6 +136,14 @@ export function mapSaraminJob(job, { now = Date.now() } = {}) {
     career: nameOf(experience),
     location: locations.join(", "),
     deadline: formatDeadline({ closeType: closeTypeCode, expirationMs, now }),
+    // ── 모집 일정 (src/lib/schedule.js가 화면 표시·D-Day 계산) ──
+    // opening-timestamp = 지원 접수 시작일 (근무 시작일 아님), posting-timestamp(게시일)는 쓰지 않음
+    applicationStartDate: openingMs !== null ? kstDateFromMs(openingMs) : "",
+    // 접수 마감일은 close-type이 "접수 마감일"일 때만 (채용시·상시·수시의 expiration은 고정 마감일이 아님)
+    applicationEndDate: closeType === "deadline" && expirationMs !== null ? kstDateFromMs(expirationMs) : "",
+    closeType,
+    // 실제 근무기간은 사람인 목록 API에 없다. 접수·게시 시각으로 만들지 않는다.
+    workPeriod: "",
     keywords: splitList(job.keyword),
     originalUrl: cleanText(job.url),
     source: SARAMIN_SOURCE,
@@ -156,10 +173,10 @@ export function mapSaraminJob(job, { now = Date.now() } = {}) {
         : null,
     education: nameOf(position["required-education-level"]) || null,
     salary: nameOf(job.salary) || null,
-    closeType: closeTypeCode,
+    closeTypeCode, // 사람인 원래 코드 ("1"~"4"). 화면은 위의 closeType(정리된 값)을 사용
     closeTypeName: closeTypeCode ? (CLOSE_TYPE_LABELS[Number(closeTypeCode)] ?? nameOf(job["close-type"]) ?? null) : null,
     postingTimestamp: toTimestampMs(job["posting-timestamp"]) ?? toTimestampMs(job["posting-date"]),
-    openingTimestamp: toTimestampMs(job["opening-timestamp"]),
+    openingTimestamp: openingMs,
     expirationTimestamp: expirationMs,
   };
 }

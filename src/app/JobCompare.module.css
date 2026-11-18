@@ -17,7 +17,7 @@
   bottom: 0;
   z-index: 20;
   background: #fff;
-  border-top: 1px solid var(--border-strong);
+  border-top: 1px solid var(--border);
   box-shadow: 0 -4px 16px rgba(25, 31, 40, 0.06);
 }
 
@@ -135,6 +135,24 @@
   }
 }
 
+/* A / B / C 표시: 중립 회색 원 (하단 바·비교 화면 공통) */
+.marker {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-sub);
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+}
+
 .barJob {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -219,15 +237,13 @@
   cursor: not-allowed;
 }
 
-/* ───── 비교 화면 ───── */
-/* 비교 전용 화면 */
+/* ───── 비교 화면: 하나의 비교 작업 공간 ───── */
 .compare {
-  padding-top: 20px;
-  margin-bottom: 40px;
+  padding-top: 16px;
+  margin-bottom: 48px;
   scroll-margin-top: 72px;
 }
 
-/* 일반 서비스의 back navigation처럼 */
 .backButton {
   display: inline-flex;
   align-items: center;
@@ -240,138 +256,185 @@
   background: none;
   border: none;
   border-radius: 6px;
-  padding: 8px;
+  padding: 6px 8px;
   cursor: pointer;
 }
 
 .compareHead {
-  margin-top: 12px;
+  margin-top: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.compareHeadText {
+  min-width: 0;
 }
 
 .compareTitle {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
+  line-height: 1.4;
   letter-spacing: -0.02em;
-}
-
-.summary {
-  margin-top: 6px;
-  font-size: 15px;
-  color: var(--text-sub);
 }
 
 .compareTitle:focus {
   outline: none;
 }
 
-/* ───── 30초 비교 / 지원 전 먼저 확인 (공고 데이터 그대로) ─────
-   시각적 우선순위: 30초 비교(흰 패널, 가장 강함) > 지원 전 먼저 확인(연한 파랑 패널) > AI 요약(패널 없음) */
-.fact {
-  margin-top: 18px;
+.summary {
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--text-sub);
+}
+
+/* 모바일 전용 A/B/C 범례 */
+.legend {
+  display: none;
+}
+
+/* 표: 세로선 없이 얇은 가로선 + 여백 + 열 정렬 */
+/* 비교표: 외곽 상자 없이 페이지 위에 바로 펼쳐지는 작업 공간 (가로선·여백·열 정렬만) */
+.ws {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-body);
+}
+
+.labelCol {
+  width: 132px;
+}
+
+.ws th,
+.ws td {
+  padding: 14px 16px;
+  text-align: left;
+  vertical-align: top;
+}
+
+/* 행 구분: 얇은 가로선만 */
+.row > th,
+.row > td {
+  border-bottom: 1px solid var(--border);
+}
+
+.labelCell {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-sub);
+  padding-left: 4px !important;
+}
+
+/* 공고 머리글: 한 번만, 스크롤해도 상단 헤더 아래에 고정 */
+.ws thead th {
+  position: sticky;
+  top: var(--header-h, 60px);
+  z-index: 2;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px 24px 24px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
 }
 
-.factRequired {
-  background: var(--bg-accent);
-  border-color: var(--border-accent);
+.jobHead {
+  font-weight: 400;
 }
 
-.factTitle {
-  font-size: 18px;
+.jobHeadTop {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.company {
+  display: block;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 직무명: 본문(14px)보다 한 단계 강하게 */
+.title {
+  display: block;
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+/* 그룹 제목 행: 회색 막대 대신 제목 + 위 여백 + 얇은 선 */
+.groupRow th {
+  padding: 28px 4px 8px;
+  background: none;
+  border-bottom: 1px solid var(--border);
+  font-weight: 400;
+}
+
+.ws tbody:first-of-type .groupRow th {
+  padding-top: 20px;
+}
+
+/* 그룹 제목 없이 바로 시작하는 행(공통 키워드)도 위 여백 */
+.ws tbody > .wideRow:first-child > * {
+  padding-top: 24px;
+}
+
+/* 큰 구분(상세 비교 펼침 컨트롤)에만 연한 배경 */
+.groupRow.groupRowSubtle th {
+  padding: 12px 12px;
+  background: var(--bg-subtle);
+  border-bottom: none;
+  border-top: 24px solid var(--surface);
+  border-radius: 0;
+}
+
+.groupTitle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--text);
 }
 
-.factDesc {
-  margin-top: 4px;
-  font-size: 13px;
-  color: var(--text-sub);
-}
-
-/* 열 사이 테두리 대신 간격, 행 구분선만 사용 */
-.factGrid {
-  margin-top: 14px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 32px;
-}
-
-.factGrid[data-cols="3"] {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  column-gap: 24px; /* 3개일 때 글자 크기는 그대로, 열 간격만 줄여 폭 확보 */
-}
-
-.factCol {
-  min-width: 0;
-}
-
-.factCompany {
-  font-size: 13px;
-  color: var(--text-sub);
-}
-
-.factJob {
-  margin-top: 2px;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.45;
-  color: var(--text);
-}
-
-.factJobSmall {
-  margin-top: 2px;
-  margin-bottom: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.45;
-  color: var(--text-body);
-}
-
-/* 30초 비교: 같은 기준이 같은 높이에 오도록 subgrid 정렬 (헤더 + 3개 행) */
-.quickGrid {
-  grid-template-rows: repeat(4, auto);
-}
-
-.quickGrid .factCol {
-  display: grid;
-  grid-row: span 4;
-  grid-template-rows: subgrid;
-  padding: 0;
-}
-
-.quickHead {
-  padding: 0 0 10px;
-  border-bottom: 1px solid var(--border-strong);
-}
-
-.quickRow {
-  padding: 10px 0;
-  font-size: 14px;
-  line-height: 1.55;
-}
-
-.quickRow + .quickRow {
-  border-top: 1px solid var(--border);
-}
-
-.quickRow dt {
-  margin-bottom: 4px;
+.groupNote {
   font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.groupToggle {
+  float: right;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: inherit;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-sub);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  padding: 0 4px;
+  cursor: pointer;
 }
 
-.quickRow dd {
+.strong {
+  font-weight: 600;
   color: var(--text);
-}
-
-.quickStrong {
-  font-size: 15px;
-  font-weight: 700;
 }
 
 .clamp2 {
@@ -380,49 +443,22 @@
   -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow: hidden;
-}
-
-/* 공고별 핵심 포인트: 카드 없이 (테두리·배경 없음), 위아래 여백만 */
-.highlights {
-  margin-top: 28px;
-  padding: 0 4px;
-}
-
-.highlightList {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.5;
   color: var(--text);
 }
 
-.highlightList li {
-  position: relative;
-  padding-left: 12px;
+/* 모집기간: 일반 정보 (파랑은 선택·액션에만) */
+.deadline {
+  font-weight: 600;
+  color: var(--text-body);
+  font-variant-numeric: tabular-nums;
 }
 
-.highlightList li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.62em;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--primary);
-}
-
-/* 지원 전 먼저 확인: 체크 표시 목록 (경고 UI 아님) */
+/* 필수 조건: 체크 목록 (경고 UI 아님) */
 .reqList {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  font-size: 14px;
-  line-height: 1.6;
+  gap: 6px;
   color: var(--text);
 }
 
@@ -435,49 +471,151 @@
   content: "✓";
   position: absolute;
   left: 1px;
-  top: 1px;
-  font-size: 11px;
+  top: 0;
+  font-size: 12px;
   font-weight: 700;
   color: var(--primary);
 }
 
-/* ───── Career Radar 비교 요약 (AI) ───── */
-.ai {
-  margin-top: 32px;
-  border-top: 1px solid var(--border-strong);
-  padding: 20px 4px 4px;
+/* 이 공고만의 포인트: 다른 행보다 빨리 읽히게 (조금 큰 글자·굵기·여백, 포인트 색은 점에만) */
+.rowHighlight > th,
+.rowHighlight > td {
+  padding-top: 16px;
+  padding-bottom: 18px;
+  border-bottom-color: var(--border-strong);
 }
 
-.aiHead {
+.hlCell {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 2px;
 }
 
-.aiTitle {
+.hlCell > .marker {
+  margin-top: 2px;
+}
+
+.highlightList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
+  line-height: 1.5;
   letter-spacing: -0.01em;
+  color: var(--text);
 }
 
+.highlightList li {
+  position: relative;
+  padding-left: 12px;
+}
+
+.highlightList li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.66em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+/* 특별 조건 포인트: 점도 amber, 글자에 옅은 amber 바탕 (행·셀 전체는 칠하지 않음) */
+.highlightList li.highlightSpecial::before {
+  background: var(--special-border);
+}
+
+.highlightList li.highlightSpecial > span {
+  color: var(--special-text);
+  background: var(--special-bg);
+  border-radius: 4px;
+  padding: 1px 6px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.lines {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lines li {
+  position: relative;
+  padding-left: 12px;
+}
+
+.lines li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.72em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.none {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.tags {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tags li {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 22px;
+  color: var(--text-sub);
+  background: var(--bg-subtle);
+  border-radius: 6px;
+  padding: 0 8px;
+}
+
+.tags li.tagCommon {
+  color: var(--primary);
+  background: var(--primary-soft);
+  font-weight: 600;
+}
+
+/* ───── AI 비교 요약 (보조) ───── */
 .aiMark {
   display: inline-block;
   font-size: 11px;
   font-weight: 600;
   line-height: 1;
-  padding: 4px 6px;
+  padding: 3px 6px;
   border-radius: 4px;
   white-space: nowrap;
-  color: var(--primary);
-  background: var(--primary-soft);
+  color: var(--text-sub);
+  background: #fff;
+  border: 1px solid var(--border);
+}
+
+.wideRow > td {
+  padding-left: 4px;
+}
+
+.ai {
+  min-width: 0;
 }
 
 .aiIdle {
-  margin-top: 10px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
 }
 
 .aiDesc {
@@ -486,12 +624,9 @@
   color: var(--text-sub);
 }
 
-/* AI 요약 실패: 경고색 없이 차분한 안내 (나머지 비교 정보는 정상이라는 점을 함께) */
+/* AI 요약 실패: 경고색 없이 차분한 안내 */
 .aiFail {
-  align-self: stretch;
-  padding: 12px 14px;
-  background: var(--bg-subtle);
-  border-radius: 8px;
+  flex: 1 1 280px;
 }
 
 .aiFailTitle {
@@ -508,18 +643,19 @@
   color: var(--text-sub);
 }
 
+/* AI 버튼: 회색 outline (주요 CTA보다 약하게) */
 .aiButton {
   font: inherit;
   font-size: 14px;
   font-weight: 600;
-  color: var(--primary);
+  color: var(--text-body);
   background: #fff;
-  border: 1px solid var(--primary);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  padding: 10px 16px;
+  height: 36px;
+  padding: 0 14px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s;
 }
 
 .aiButton:disabled {
@@ -528,16 +664,17 @@
 }
 
 .aiRows {
-  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
 }
 
 .aiRow {
   display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 24px;
-  padding: 16px 0;
-  font-size: 15px;
-  line-height: 1.65;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 20px;
+  padding: 10px 0;
+  font-size: 14px;
+  line-height: 1.6;
   color: var(--text-body);
 }
 
@@ -546,13 +683,30 @@
 }
 
 .aiRow dt {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
 }
 
-.aiLead {
+/* 가장 큰 차이: 공고별 키워드 한 줄 (A/B/C 표시 + 글자만, 새 색·상자 없음) */
+.diffLines {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.diffLines li {
+  display: flex;
+  align-items: center;
+  gap: 2px; /* .marker에 margin-right 6px이 이미 있음 */
   font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.aiLead {
   color: var(--text);
 }
 
@@ -560,17 +714,17 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .bestForTitle {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text);
 }
 
 .bestForText {
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .aiNote {
@@ -580,254 +734,36 @@
   color: var(--text-muted);
 }
 
-.common {
-  margin-top: 16px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 14px;
-  padding: 16px 4px;
-  border-top: 1px solid var(--border);
-}
-
-.common .tags li {
-  background: var(--surface);
-  border-color: var(--border);
-}
-
-.common .tags li.tagCommon {
-  background: var(--primary-soft);
-  border-color: transparent;
-}
-
-.commonLabel {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.tags {
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.tags li {
-  font-size: 12px;
-  color: var(--text-sub);
-  background: var(--bg-subtle);
-  border: 1px solid transparent;
-  border-radius: 4px;
-  padding: 3px 8px;
-}
-
-.tags li.tagCommon {
-  color: var(--primary);
-  background: var(--primary-soft);
-  font-weight: 600;
-}
-
-/* 상세 비교표: 기본 접힘. 제목 + 짧은 설명 + 보조(outline) 버튼 */
-.tableSection {
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border);
-}
-
-.tableTitle {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.tableDesc {
-  margin-top: 4px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--text-sub);
-}
-
-.tableToggleWrap {
-  margin-top: 16px;
-  display: flex;
-  justify-content: center;
-}
-
-/* 가운데 정렬 outline 버튼: 존재감은 높이되 Career Radar 분석(파란 채움)보다 약하게 */
-.tableToggle {
-  width: min(320px, 100%);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font: inherit;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-body);
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: 10px;
-  padding: 12px 20px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.tableToggle:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .tableToggle:hover {
-    border-color: var(--text-muted);
-    background: var(--bg-subtle);
-  }
-}
-
-.tableWrap {
-  margin-top: 16px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  background: var(--surface);
-  border-top: 1px solid var(--text);
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-  font-size: 14px;
-  line-height: 1.65;
-  color: var(--text-body);
-}
-
-.table th,
-.table td {
-  padding: 16px 18px;
-  text-align: left;
-  vertical-align: top;
-  border-bottom: 1px solid var(--border);
-}
-
-.table td + td,
-.table th + th,
-.table th + td {
-  border-left: 1px solid var(--border);
-}
-
-.table thead th {
-  border-bottom-color: var(--border-strong);
-}
-
-/* 3개 비교(PC): 글자 크기는 유지하고 셀 padding만 조금 줄여 한 열 폭 확보 */
-@media (min-width: 601px) {
-  .table[data-cols="3"] th,
-  .table[data-cols="3"] td {
-    padding: 14px 14px;
-  }
-  .table[data-cols="3"] .labelCell {
-    width: 104px;
-  }
-}
-
-.labelCell {
-  width: 120px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-sub);
-  background: var(--bg-subtle);
-}
-
-.jobHead {
-  font-weight: 400;
-}
-
-.company {
-  display: block;
-  font-size: 13px;
-  color: var(--text-sub);
-}
-
-.title {
-  display: block;
-  margin-top: 2px;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.45;
-  color: var(--text);
-}
-
-.deadline {
-  font-weight: 600;
-  color: var(--primary);
-}
-
-.lines {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.lines li {
-  position: relative;
-  padding-left: 12px;
-}
-
-.lines li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.75em;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--text-muted);
-}
-
-.none {
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.actionRow td {
-  border-bottom: none;
+/* ───── 공고별 이동 (항상 표시) ───── */
+.actionRow > th,
+.actionRow > td {
+  padding-top: 16px;
 }
 
 .actions {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .analyzeButton,
 .linkButton {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 4px;
+  height: 32px;
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
+  text-decoration: none;
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 0 12px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.analyzeButton {
-  color: #fff;
-  background: var(--primary);
-  border: 1px solid var(--primary);
-}
-
-.linkButton {
   color: var(--text-body);
   background: #fff;
   border: 1px solid var(--border-strong);
+  transition: border-color 0.15s;
 }
 
 .clearButton:focus-visible,
@@ -836,22 +772,21 @@
 .aiButton:focus-visible,
 .barRemove:focus-visible,
 .analyzeButton:focus-visible,
-.linkButton:focus-visible {
+.linkButton:focus-visible,
+.groupToggle:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .compareButton:hover:not(:disabled),
-  .analyzeButton:hover {
+  .compareButton:hover:not(:disabled) {
     background: var(--primary-hover);
   }
   .clearButton:hover,
-  .linkButton:hover {
-    border-color: var(--text-muted);
-  }
+  .linkButton:hover,
+  .analyzeButton:hover,
   .aiButton:hover:not(:disabled) {
-    background: var(--primary-soft);
+    border-color: var(--text-muted);
   }
   .backButton:hover {
     color: var(--text);
@@ -861,9 +796,12 @@
     color: var(--text);
     background: var(--border);
   }
+  .groupToggle:hover {
+    color: var(--text);
+  }
 }
 
-/* ───── Mobile ───── */
+/* ───── Mobile: 표를 기준별 세로 목록으로 (가로 스크롤 없음) ───── */
 @media (max-width: 600px) {
   .barInner {
     padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
@@ -878,61 +816,143 @@
   .barActions > button {
     flex: 1;
   }
+
   .compareTitle {
-    font-size: 24px;
+    font-size: 20px;
   }
-  .factGrid,
-  .factGrid[data-cols="3"] {
-    grid-template-columns: 1fr;
+
+  /* 머리글 대신 A/B/C 범례 */
+  .legend {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-strong);
   }
-  .fact {
-    padding: 20px 16px 20px;
+  .legend li {
+    display: flex;
+    align-items: flex-start;
   }
-  /* 모바일: 공고별로 세로 stack */
-  .quickGrid {
-    grid-template-rows: none;
+  .legend .marker {
+    margin-top: 1px;
   }
-  .quickGrid .factCol {
+  .legendText {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .legendCompany {
+    font-size: 12px;
+    color: var(--text-sub);
+  }
+  .legendTitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .ws,
+  .ws tbody,
+  .ws tfoot,
+  .ws tr,
+  .ws th,
+  .ws td {
     display: block;
-    grid-row: auto;
+    width: 100%;
   }
-  .factCol + .factCol {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border-strong);
+  .ws thead,
+  .ws colgroup {
+    display: none;
+  }
+  .ws th,
+  .ws td {
+    padding: 0;
+  }
+  .groupRow th {
+    padding: 4px 0 8px;
+  }
+  .ws tbody:first-of-type .groupRow th {
+    padding-top: 0;
+  }
+  .groupRow.groupRowSubtle th {
+    padding: 10px 12px;
+    border-top: none;
+    border-radius: 6px;
+  }
+  .ws tbody > .wideRow:first-child > *,
+  .rowHighlight > th {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  /* 모바일은 값 앞에 A/B/C가 이미 붙으므로 칸 안의 표시는 숨김 */
+  .hlCell > .marker {
+    display: none;
+  }
+  .ws tbody + tbody {
+    margin-top: 20px;
+  }
+  .row {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .row > th,
+  .row > td {
+    border-bottom: none;
+  }
+  .labelCell {
+    margin-bottom: 6px;
+    padding-left: 0 !important;
+  }
+  /* 공고별 값: 앞에 A/B/C */
+  .row > td[data-marker],
+  .actionRow > td[data-marker] {
+    position: relative;
+    padding: 4px 0 4px 26px;
+  }
+  .row > td[data-marker]::before,
+  .actionRow > td[data-marker]::before {
+    content: attr(data-marker);
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-sub);
+    border: 1px solid var(--border-strong);
+    border-radius: 50%;
+  }
+  .wideRow > td {
+    padding: 0;
+  }
+  .groupToggle {
+    float: none;
+    display: flex;
+    margin-top: 6px;
+    padding: 0;
   }
   .aiRow {
     grid-template-columns: 1fr;
-    gap: 6px;
-    padding: 14px 0;
+    gap: 4px;
   }
   .aiButton {
-    align-self: stretch;
-  }
-  .tableToggle {
     width: 100%;
   }
-  /* 비교 표는 가로 스크롤 (항목 열 고정) */
-  .table {
-    width: auto;
-    min-width: 100%;
+  .actionRow {
+    padding-top: 16px;
   }
-  .table[data-cols="2"] {
-    width: calc(76px + 2 * 220px);
+  .actionRow > th {
+    display: none;
   }
-  .table[data-cols="3"] {
-    width: calc(76px + 3 * 220px);
-  }
-  .labelCell {
-    position: sticky;
-    left: 0;
-    z-index: 1;
-    width: 76px;
-    padding-left: 10px;
-    padding-right: 10px;
-  }
-  .table th,
-  .table td {
-    padding: 12px;
+  .actionRow > td[data-marker] {
+    padding-top: 6px;
+    padding-bottom: 6px;
   }
 }

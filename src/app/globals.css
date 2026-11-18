@@ -1,5 +1,5 @@
 :root {
-  --background: #ffffff;
+  --background: #f7f8fa; /* page.module.css의 --bg-page와 같은 값 (스크롤 끝·여백도 같은 색) */
   --foreground: #171717;
 }
 
@@ -10,7 +10,8 @@ html {
 html,
 body {
   max-width: 100vw;
-  overflow-x: hidden;
+  overflow-x: hidden; /* 오래된 브라우저 fallback */
+  overflow-x: clip; /* 가로 넘침은 숨기되 scroll container를 만들지 않음 → position: sticky(헤더·비교표 머리글) 유지 */
 }
 
 body {

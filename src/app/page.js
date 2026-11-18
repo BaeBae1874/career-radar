@@ -5,7 +5,14 @@ import styles from "./page.module.css";
 import JobSearch, { EMPLOYMENT_FILTERS } from "./JobSearch";
 import { loadSession, patchSession } from "./sessionStore";
 import { recordRecent } from "./recentStore";
+import AuthMenu from "./AuthMenu";
 import { CompareBar, CompareView, MAX_COMPARE } from "./JobCompare";
+import SaveJobButton from "./SaveJobButton";
+import { useSavedJobs } from "./savedJobsStore";
+import { readAnalyzeIntent, readCompareIntent } from "./savedIntent";
+import { restoreCompareJobs, toComparisonPosting } from "@/lib/savedComparisons";
+import { isCustomJob, isStructuredOnly, toPostingText } from "@/lib/customJobs";
+import { getApplicationSchedule, normalizeWorkPeriod } from "@/lib/schedule";
 
 const INTERESTS = ["마케팅", "기획", "데이터", "개발", "디자인", "금융", "콘텐츠"];
 
@@ -22,8 +29,9 @@ const JOB_POSTING_PLACEHOLDER = `예:
 
 const EMPTY_TEXT = "공고에 명시되어 있지 않아요.";
 
-function SourceMark() {
-  return <span className={`${styles.mark} ${styles.markSource}`}>원문 추출</span>;
+// label: 붙여넣은·검색 공고 원문에서 정리했으면 "원문 추출", 저장된 구조화 데이터로만 분석했으면 "저장된 공고 정보"
+function SourceMark({ label = "원문 추출" }) {
+  return <span className={`${styles.mark} ${styles.markSource}`}>{label}</span>;
 }
 
 function AiMark() {
@@ -97,7 +105,7 @@ function SkillChips({ skills }) {
 
 function CheckPoints({ points }) {
   const { visible, toggle } = useCollapsible(points, MAX_CHECK_POINTS);
-  if (!points.length) return <p className={styles.muted}>공고만으로 특별히 불명확한 부분은 없었어요.</p>;
+  if (!points.length) return <p className={styles.muted}>추가로 확인이 필요한 항목이 발견되지 않았어요.</p>;
   return (
     <>
       <ul className={styles.checkList}>
@@ -123,18 +131,36 @@ function Section({ title, mark, children, className = "" }) {
 }
 
 // AI 분석만 실패했을 때: 화면 전체가 고장 난 것처럼 보이지 않게 차분한 안내 (공고 정보·원문 링크는 그대로)
-function AiFailNotice({ kind, isManual }) {
+function AiFailNotice({ kind, isManual, hasFacts = false }) {
   return (
     <div className={styles.aiFail} role="status">
-      <p className={styles.aiFailTitle}>공고 분석을 불러오지 못했어요.</p>
+      <p className={styles.aiFailTitle}>AI 분석을 잠시 불러오지 못했어요.</p>
       <p className={styles.aiFailDesc}>
         {kind === "network" && "인터넷 연결을 확인한 뒤 다시 시도해 주세요. "}
         {isManual
           ? "입력한 공고 내용은 그대로 남아 있어요."
-          : "원문 공고는 그대로 확인할 수 있어요."}
+          : hasFacts
+            ? "공고에 적힌 내용은 아래에서 그대로 확인할 수 있어요."
+            : "원문 공고는 그대로 확인할 수 있어요."}
       </p>
     </div>
   );
+}
+
+/**
+ * AI 분석이 실패했을 때 보여 줄 "공고에 적힌 내용" (검색 공고만, AI 결과 아님)
+ * 공고 데이터의 주요 업무·자격요건·우대사항·키워드를 그대로. 하나도 없으면 null
+ */
+function getPostingFacts(job) {
+  if (!job) return null;
+  const list = (v) => (Array.isArray(v) ? v.filter((t) => typeof t === "string" && t.trim()) : []);
+  const facts = {
+    tasks: list(job.tasks),
+    required: list(job.required),
+    preferred: list(job.preferred),
+    keywords: list(job.keywords),
+  };
+  return Object.values(facts).some((v) => v.length) ? facts : null;
 }
 
 function Chevron({ open }) {
@@ -198,7 +224,21 @@ function isValidCompareSummary(r, jobs) {
 }
 
 /** 분석 화면 헤더에 필요한 만큼만 저장하는 공고 요약 */
-const SNAPSHOT_FIELDS = ["company", "title", "originalUrl", "employmentType", "career", "location", "deadline"];
+const SNAPSHOT_FIELDS = [
+  "company",
+  "title",
+  "originalUrl",
+  "employmentType",
+  "career",
+  "location",
+  "deadline",
+  "source",
+  // 모집 일정·근무기간 (없으면 "", 표시 helper가 빈 값을 건너뜀)
+  "applicationStartDate",
+  "applicationEndDate",
+  "closeType",
+  "workPeriod",
+];
 const toJobSnapshot = (job) =>
   job && {
     id: job.id,
@@ -230,6 +270,8 @@ export default function Home() {
   const resultRef = useRef(null);
   const analyzeRef = useRef(null);
   const [compareJobs, setCompareJobs] = useState([]);
+  // 저장한 비교를 다시 연 상태: 새로고침해도 저장 당시 snapshot으로 복원 (사용자가 선택을 바꾸면 해제)
+  const [compareFromSaved, setCompareFromSaved] = useState(false);
   // 화면 단계: "search"(공고 찾기) / "compare"(공고 비교) / "analysis"(공고 1개 분석)
   // 모든 상태는 page에 두고 화면만 바꾸므로, 돌아왔을 때 검색·선택·비교 결과가 그대로 유지된다
   const [view, setView] = useState("search");
@@ -248,6 +290,8 @@ export default function Home() {
   const [compareSummary, setCompareSummary] = useState(null);
   // 분석 결과를 만든 입력 원문 (새로고침 후 입력과 결과가 일치할 때만 결과 복원)
   const [resultPosting, setResultPosting] = useState("");
+  // 분석 입력의 출처: "original"(원문) | "structured"(저장된 공고 정보로 만든 입력) — 화면의 출처 표시에만 사용
+  const [postingSource, setPostingSource] = useState("original");
   // 공고 직접 입력일 때 사용자가 적은 공고 제목/직무명 (선택)
   const [manualTitle, setManualTitle] = useState("");
   // sessionStorage 복원 완료 여부 (복원 전에는 화면을 숨겨 잘못된 초기 화면이 보이지 않게)
@@ -277,14 +321,44 @@ export default function Home() {
         MAX_COMPARE
       );
       let pool = listData?.jobs ?? [];
-      if (ids.some((id) => !pool.some((j) => j.id === id))) {
+      let allLoaded = false;
+      const loadAll = async () => {
+        if (allLoaded) return;
+        allLoaded = true;
         const all = await fetchJobList("");
         if (all) pool = [...pool, ...all.jobs];
+      };
+      if (ids.some((id) => !pool.some((j) => j.id === id))) await loadAll();
+      // 비교 중이던 공고의 snapshot (저장한 비교처럼 지금 목록에 없는 공고도 다시 열 수 있게)
+      const storedPostings = Array.isArray(pageState?.compareSnapshots)
+        ? pageState.compareSnapshots.map(toComparisonPosting).filter(Boolean)
+        : [];
+      const fromSaved = pageState?.compareFromSaved === true;
+
+      // 저장함에서 "비교 다시 보기": 저장 당시 snapshot·A/B/C 순서 그대로 (본문만 지금 목록에서 빌려 옴)
+      const compareIntent = readCompareIntent(saved);
+      if (compareIntent) await loadAll();
+
+      let restoredCompare;
+      if (compareIntent) {
+        restoredCompare = restoreCompareJobs(compareIntent, pool);
+      } else if (fromSaved) {
+        const ordered = ids.map((id) => storedPostings.find((p) => p.id === id)).filter(Boolean);
+        restoredCompare = restoreCompareJobs(ordered, pool);
+      } else {
+        restoredCompare = [...new Set(ids)]
+          .map((id) => pool.find((j) => j.id === id) ?? storedPostings.find((p) => p.id === id))
+          .filter(Boolean);
       }
-      const restoredCompare = [...new Set(ids)]
-        .map((id) => pool.find((j) => j.id === id))
-        .filter(Boolean);
       const canRestoreCompare = restoredCompare.length >= 2;
+
+      // 저장함에서 "공고 분석"으로 들어온 경우: 저장된 job_id로 공고 본문을 다시 찾는다
+      const intent = readAnalyzeIntent(saved);
+      let intentJob = null;
+      if (intent) {
+        if (!pool.some((j) => j.id === intent.jobId)) await loadAll();
+        intentJob = pool.find((j) => j.id === intent.jobId) ?? null;
+      }
 
       if (cancelled) return;
 
@@ -302,11 +376,13 @@ export default function Home() {
         setSearchMountKey((k) => k + 1); // 복원값으로 JobSearch를 다시 시작
       }
 
-      // 비교 선택 + AI 비교 결과 (같은 공고 조합일 때만)
+      // 비교 선택 + AI 비교 결과 (같은 공고 조합일 때만, 저장한 비교를 다시 열 때는 AI 결과 없이)
       setCompareJobs(restoredCompare);
+      setCompareFromSaved(Boolean(compareIntent) || (fromSaved && canRestoreCompare));
       const savedSummary = pageState?.compareSummary;
       const compareKey = restoredCompare.map((j) => j.id).join("|");
       if (
+        !compareIntent &&
         canRestoreCompare &&
         savedSummary?.ids === compareKey &&
         isValidCompareSummary(savedSummary.summary, restoredCompare)
@@ -334,6 +410,7 @@ export default function Home() {
         setKeyword(isStr(a.keyword) ? a.keyword : "");
         setJobPosting(posting);
         setManualTitle(isStr(a.manualTitle) ? a.manualTitle.slice(0, 100) : "");
+        setPostingSource(a.postingSource === "structured" ? "structured" : "original");
         if (resultOk) {
           setResult(a.result);
           setResultPosting(posting);
@@ -341,10 +418,34 @@ export default function Home() {
         setFormOpen(typeof a.formOpen === "boolean" ? a.formOpen : !resultOk);
         hasAnalysis = Boolean(job) || posting.trim() !== "" || from === "manual";
       }
+
+      // 저장함 → 분석: 검색 결과에서 "공고 분석"을 누른 것과 같은 상태로 연다
+      // 공고 본문을 찾지 못하면(목록에서 내려간 공고 등) 저장된 요약만 보여 주고 본문은 직접 붙여넣게 한다
+      if (intent) {
+        // 지금 공고 목록에 있으면 그 공고, 없으면(직접 추가한 공고 등) 저장된 사실 데이터로
+        const fullJob = intentJob ?? intent.full;
+        const job = fullJob ?? intent.job;
+        const posting = fullJob ? toPostingText(fullJob) : "";
+        setPostingSource(isStructuredOnly(fullJob) ? "structured" : "original");
+        const keepResult =
+          posting !== "" && isValidAnalysisResult(a?.result) && a?.resultPosting === posting;
+        if (intentJob) recordRecent(intentJob);
+        setSelectedJob(fullJob ?? toJobSnapshot(job));
+        setKeyword((job.keywords ?? []).join(", "));
+        setJobPosting(posting);
+        setManualTitle("");
+        setResult(keepResult ? a.result : null);
+        setResultPosting(keepResult ? posting : "");
+        setFormOpen(!posting);
+        from = "search";
+        hasAnalysis = true;
+      }
       setAnalysisFrom(from);
 
       // 화면: 복원 가능한 경우에만, 아니면 search
       let nextView = VIEWS.includes(pageState?.view) ? pageState.view : "search";
+      if (intent) nextView = "analysis";
+      if (compareIntent && canRestoreCompare) nextView = "compare";
       if (nextView === "compare" && !canRestoreCompare) nextView = "search";
       if (nextView === "analysis" && !hasAnalysis) nextView = "search";
       setView(nextView);
@@ -355,6 +456,8 @@ export default function Home() {
         const y = Number(savedScroll[v]);
         scrollPositions.current[v] = Number.isFinite(y) && y > 0 ? y : 0;
       });
+      if (intent) scrollPositions.current.analysis = 0;
+      if (compareIntent) scrollPositions.current.compare = 0;
       setRestored(true);
       const targetY = scrollPositions.current[nextView];
       requestAnimationFrame(() =>
@@ -396,6 +499,9 @@ export default function Home() {
         view,
         analysisFrom,
         compareIds: compareJobs.map((j) => j.id),
+        // 비교 공고 snapshot: 지금 공고 목록에 없는 공고(저장한 비교)도 새로고침·로그인 후 다시 열 수 있게
+        compareSnapshots: compareJobs.map(toComparisonPosting).filter(Boolean),
+        compareFromSaved,
         compareSummary: currentCompareSummary
           ? { ids: compareKey, summary: currentCompareSummary }
           : null,
@@ -406,6 +512,7 @@ export default function Home() {
           jobPosting,
           manualTitle,
           formOpen,
+          postingSource,
           // 결과는 그 결과를 만든 입력 원문과 함께 저장 → 복원 시 입력과 같을 때만 사용
           result: result && resultPosting === jobPosting ? result : null,
           resultPosting: result && resultPosting === jobPosting ? resultPosting : "",
@@ -417,6 +524,7 @@ export default function Home() {
     view,
     analysisFrom,
     compareJobs,
+    compareFromSaved,
     compareKey,
     currentCompareSummary,
     selectedJob,
@@ -425,6 +533,7 @@ export default function Home() {
     jobPosting,
     manualTitle,
     formOpen,
+    postingSource,
     result,
     resultPosting,
   ]);
@@ -449,6 +558,14 @@ export default function Home() {
   }, [restored]);
   const isCompareView = view === "compare" && canCompare;
   const isManual = analysisFrom === "manual" || !selectedJob;
+  // 분석 중인 공고의 저장 상태 (검색 결과에서 이미 확인한 공고면 다시 조회하지 않음)
+  const savedState = useSavedJobs(view === "analysis" && !isManual ? [selectedJob.id] : []);
+  // AI 분석 실패 시 보여 줄 공고 사실 데이터 (직접 입력한 공고는 구조화된 데이터가 없어 제외)
+  const postingFacts = isManual ? null : getPostingFacts(selectedJob);
+  // 원문 없이 저장된 공고 정보로 분석한 경우 "원문 추출"이라고 표시하지 않음
+  const structuredInput = !isManual && postingSource === "structured";
+  const sourceLabel = structuredInput ? "저장된 공고 정보" : "원문 추출";
+  const sourceLegend = structuredInput ? "저장된 공고 정보를 그대로 정리" : "공고에 적힌 내용을 그대로 정리";
 
   // 화면 전환: 떠나는 화면의 스크롤 위치를 기억하고, 새 화면은 지정한 위치로 이동
   const switchView = (next, scrollTop = 0) => {
@@ -462,6 +579,7 @@ export default function Home() {
 
   const updateCompareJobs = (next) => {
     setCompareJobs(next);
+    setCompareFromSaved(false);
     // 공고 조합이 바뀌면 기존 AI 비교 결과는 폐기
     const nextKey = next.map((j) => j.id).join("|");
     setCompareSummary((prev) => (prev && prev.ids === nextKey ? prev : null));
@@ -544,6 +662,7 @@ export default function Home() {
       setKeyword("");
       setJobPosting("");
       setManualTitle("");
+      setPostingSource("original");
       setFormOpen(true);
     } else if (!result) {
       setFormOpen(true);
@@ -560,7 +679,8 @@ export default function Home() {
       resetAnalysis();
       setSelectedJob(job);
       setKeyword((job.keywords ?? []).join(", "));
-      setJobPosting(`공고명: ${job.title}\n회사명: ${job.company}\n\n${job.description ?? ""}`.trim());
+      setJobPosting(toPostingText(job));
+      setPostingSource(isStructuredOnly(job) ? "structured" : "original");
     }
     setAnalysisFrom(from);
     setFormOpen(false);
@@ -656,24 +776,18 @@ export default function Home() {
     "아직 입력한 공고가 없어요";
 
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${isCompareView ? styles.pageWorkspace : ""}`}>
       <header className={styles.topbar}>
         <div className={styles.topbarInner}>
-          <button
-            type="button"
-            className={styles.logo}
-            onClick={goHome}
-            aria-label="Career Radar 검색 첫 화면으로"
-          >
-            Career Radar
-          </button>
-          <div className={styles.topbarRight}>
-            {/* 기존 선택 개수만 보조로 표시 (search 화면, PC에서만) */}
-            {view === "search" && compareJobs.length > 0 && (
-              <span className={styles.headerMeta}>
-                비교 선택 <strong>{compareJobs.length}개</strong>
-              </span>
-            )}
+          <div className={styles.topbarLeft}>
+            <button
+              type="button"
+              className={styles.logo}
+              onClick={goHome}
+              aria-label="Career Radar 검색 첫 화면으로"
+            >
+              Career Radar
+            </button>
             <nav className={styles.nav} aria-label="주요 메뉴">
               <button
                 type="button"
@@ -681,7 +795,8 @@ export default function Home() {
                 aria-current={view === "search" ? "page" : undefined}
                 onClick={goToSearch}
               >
-                공고 찾기
+                <span className={styles.labelFull}>공고 찾기</span>
+                <span className={styles.labelShort}>찾기</span>
               </button>
               <button
                 type="button"
@@ -689,20 +804,31 @@ export default function Home() {
                 aria-current={isCompareView ? "page" : undefined}
                 onClick={goToCompare}
               >
-                공고 비교
+                <span className={styles.labelFull}>공고 비교</span>
+                <span className={styles.labelShort}>비교</span>
                 {compareJobs.length > 0 && (
-                  <span className={styles.navBadge}>{compareJobs.length}</span>
+                  <span className={styles.navBadge} aria-label={`선택 ${compareJobs.length}개`}>
+                    {compareJobs.length}
+                  </span>
                 )}
               </button>
-              <button
-                type="button"
-                className={`${styles.navItem} ${view === "analysis" && isManual ? styles.navItemActive : ""}`}
-                aria-current={view === "analysis" && isManual ? "page" : undefined}
-                onClick={goToManual}
-              >
-                공고 직접 입력
-              </button>
             </nav>
+          </div>
+          <div className={styles.topbarRight}>
+            {/* 공고 원문을 깊게 분석하는 경로: 메인 메뉴보다 한 단계 낮은 secondary action */}
+            <button
+              type="button"
+              className={`${styles.headerAction} ${view === "analysis" && isManual ? styles.headerActionActive : ""}`}
+              aria-current={view === "analysis" && isManual ? "page" : undefined}
+              onClick={goToManual}
+            >
+              <span className={styles.labelFull}>공고 내용 분석</span>
+              <span className={styles.labelShort}>내용 분석</span>
+            </button>
+            {/* 계정 영역: 비회원 "로그인" / 회원 "저장함" + 계정 메뉴 (비회원도 모든 기능 사용 가능) */}
+            <div className={styles.accountSlot}>
+              <AuthMenu />
+            </div>
           </div>
         </div>
       </header>
@@ -711,14 +837,9 @@ export default function Home() {
       <main className={styles.container} style={restored ? undefined : { visibility: "hidden" }}>
         {/* ① search: 공고를 찾고 고르는 화면 (숨기기만 해서 검색어·필터·결과 유지) */}
         <div hidden={view !== "search"}>
+          {/* 한 줄 핵심 메시지 (긴 hero 설명은 제거) */}
           <section className={styles.hero}>
-            <h1 className={styles.heroTitle}>
-              채용공고, 제목보다 <br className={styles.mobileBreak} />
-              실제 일을 먼저 보세요.
-            </h1>
-            <p className={styles.heroDesc}>
-              실제 공고를 구조화하고, AI 해석의 원문 근거까지 함께 확인해보세요.
-            </p>
+            <h1 className={styles.heroTitle}>직무명이 비슷해도 실제 일은 다릅니다.</h1>
           </section>
 
           <JobSearch
@@ -735,13 +856,8 @@ export default function Home() {
           <p className={styles.manualToggle}>
             <span className={styles.manualToggleText}>원하는 공고가 없나요?</span>
             <button type="button" className={styles.textButton} onClick={goToManual}>
-              공고 직접 입력하기 <span aria-hidden="true">→</span>
+              공고 내용 분석하기 <span aria-hidden="true">→</span>
             </button>
-          </p>
-
-          <p className={styles.intro}>
-            Career Radar는 직업을 추천하기보다, 실제 채용공고를 바탕으로 직무의 차이를
-            이해하도록 돕는 것을 목표로 합니다.
           </p>
         </div>
 
@@ -770,42 +886,71 @@ export default function Home() {
             <header className={styles.viewHead}>
               {isManual ? (
                 <>
-                  <h1 className={styles.viewTitle}>공고 직접 입력</h1>
+                  <h1 className={styles.viewTitle}>공고 내용 분석</h1>
                   <p className={styles.viewDesc}>
-                    검색 결과에 없는 채용공고도 직접 붙여넣어 분석할 수 있어요.
+                    채용공고 원문을 붙여넣으면 실제 업무와 지원 조건을 나눠서 정리해 드려요.
                   </p>
                 </>
               ) : (
                 <>
-                  <h1 className={styles.viewEyebrow}>공고 분석</h1>
+                  <h1 className={styles.viewEyebrow}>
+                    공고 분석
+                    {isCustomJob(selectedJob) && <span className={styles.viewSourceNote}> · 직접 추가한 공고</span>}
+                  </h1>
                   <p className={styles.viewCompany}>{selectedJob.company}</p>
                   <p className={styles.viewJobTitle}>{selectedJob.title}</p>
                   {(() => {
-                    const meta = [
-                      selectedJob.employmentType,
-                      selectedJob.career,
-                      selectedJob.location,
-                      selectedJob.deadline,
-                    ].filter(Boolean);
-                    return meta.length > 0 ? (
-                      <p className={styles.viewMeta}>
-                        {meta.map((m, i) => (
-                          <span key={i}>{m}</span>
-                        ))}
-                      </p>
-                    ) : null;
+                    const meta = [selectedJob.employmentType, selectedJob.career, selectedJob.location].filter(Boolean);
+                    // 모집 일정(지원 접수)과 실제 근무기간은 따로, 있는 것만
+                    const schedule = getApplicationSchedule(selectedJob).text;
+                    const workPeriod = normalizeWorkPeriod(selectedJob.workPeriod);
+                    return (
+                      <>
+                        {meta.length > 0 && (
+                          <p className={styles.viewMeta}>
+                            {meta.map((m, i) => (
+                              <span key={i}>{m}</span>
+                            ))}
+                          </p>
+                        )}
+                        {(schedule || workPeriod) && (
+                          <dl className={styles.viewSchedule}>
+                            {schedule && (
+                              <div>
+                                <dt>모집기간</dt>
+                                <dd>{schedule}</dd>
+                              </div>
+                            )}
+                            {workPeriod && (
+                              <div>
+                                <dt>근무기간</dt>
+                                <dd>{workPeriod}</dd>
+                              </div>
+                            )}
+                          </dl>
+                        )}
+                      </>
+                    );
                   })()}
-                  {selectedJob.originalUrl && (
-                    <a
-                      className={styles.linkButton}
-                      href={selectedJob.originalUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    
-                      onClick={() => recordRecent(selectedJob)}>
-                      원문 공고 보기 <span aria-hidden="true">↗</span>
-                    </a>
-                  )}
+                  <div className={styles.viewActions}>
+                    {selectedJob.originalUrl && (
+                      <a
+                        className={styles.linkButton}
+                        href={selectedJob.originalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => recordRecent(selectedJob)}
+                      >
+                        원문 공고 보기 <span aria-hidden="true">↗</span>
+                      </a>
+                    )}
+                    <SaveJobButton
+                      job={selectedJob}
+                      saved={savedState.saved.has(selectedJob.id)}
+                      pending={savedState.pending.has(selectedJob.id)}
+                      size="head"
+                    />
+                  </div>
                 </>
               )}
             </header>
@@ -845,7 +990,9 @@ export default function Home() {
                       {error}
                     </p>
                   )}
-                  {aiFail && !loading && <AiFailNotice kind={aiFail} isManual={isManual} />}
+                  {aiFail && !loading && (
+                    <AiFailNotice kind={aiFail} isManual={isManual} hasFacts={Boolean(postingFacts)} />
+                  )}
                   <button
                     type="button"
                     className={styles.submit}
@@ -942,7 +1089,9 @@ export default function Home() {
                       {error}
                     </p>
                   )}
-                  {aiFail && !loading && <AiFailNotice kind={aiFail} isManual={isManual} />}
+                  {aiFail && !loading && (
+                    <AiFailNotice kind={aiFail} isManual={isManual} hasFacts={Boolean(postingFacts)} />
+                  )}
 
                   <button
                     type="button"
@@ -956,6 +1105,41 @@ export default function Home() {
                 </form>
               )}
             </section>
+
+            {/* AI 분석 실패 시: AI 해석 없이 공고 데이터에 적힌 내용만 (AI 결과처럼 보이지 않게 AI 표시·해석 섹션 없음) */}
+            {!result && aiFail && !loading && postingFacts && (
+              <article className={styles.result} aria-label="공고에 적힌 내용">
+                <header className={`${styles.resultHead} ${styles.resultHeadCompact}`}>
+                  <p className={styles.legend}>
+                    <span>
+                      <SourceMark label={sourceLabel} /> {sourceLegend} (AI 해석 없음)
+                    </span>
+                  </p>
+                </header>
+                <div className={styles.resultMain}>
+                  <Section title="실제로 하게 될 일" mark={<SourceMark label={sourceLabel} />}>
+                    <TextList items={postingFacts.tasks} />
+                  </Section>
+                  <Section title="지원 조건" mark={<SourceMark label={sourceLabel} />} className={styles.sectionBreak}>
+                    <div className={styles.conditions}>
+                      <div className={styles.condCol}>
+                        <h4 className={styles.condTitle}>필수 조건</h4>
+                        <TextList items={postingFacts.required} />
+                      </div>
+                      <div className={styles.condCol}>
+                        <h4 className={styles.condTitle}>우대 조건</h4>
+                        <TextList items={postingFacts.preferred} />
+                      </div>
+                    </div>
+                  </Section>
+                  {postingFacts.keywords.length > 0 && (
+                    <Section title="공고 키워드" className={styles.sectionBreak}>
+                      <SkillChips skills={postingFacts.keywords} />
+                    </Section>
+                  )}
+                </div>
+              </article>
+            )}
 
             {result && (
               <article className={styles.result} ref={resultRef} aria-live="polite">
@@ -976,7 +1160,7 @@ export default function Home() {
                   )}
                   <p className={styles.legend}>
                     <span>
-                      <SourceMark /> 공고에 적힌 내용을 그대로 정리
+                      <SourceMark label={sourceLabel} /> {sourceLegend}
                     </span>
                     <span>
                       <AiMark /> 공고를 바탕으로 AI가 해석
@@ -984,90 +1168,96 @@ export default function Home() {
                   </p>
                 </header>
 
-                <Section title="30초 만에 이해하기" mark={<AiMark />} className={styles.sectionLead}>
-                  {result.simpleExplanation ? (
-                    <p className={styles.lead}>{result.simpleExplanation}</p>
-                  ) : (
-                    <p className={styles.empty}>{EMPTY_TEXT}</p>
-                  )}
-
-                  {/* 원문 근거: 서버가 공고 원문과 대조해 검증한 explanationEvidence만 그대로 표시 (없으면 버튼도 숨김) */}
-                  {result.explanationEvidence?.length > 0 && (
-                    <>
-                      <button
-                        type="button"
-                        className={styles.textButton}
-                        aria-expanded={evidenceOpen}
-                        aria-controls="evidence"
-                        onClick={() => setEvidenceOpen((v) => !v)}
-                      >
-                        원문 근거 보기
-                        <Chevron open={evidenceOpen} />
-                      </button>
-                      {evidenceOpen && (
-                        <div id="evidence" className={styles.evidence}>
-                          <p className={styles.evidenceTitle}>
-                            원문 근거 <SourceMark />
-                          </p>
-                          {result.explanationEvidence.map((t, i) => (
-                            <blockquote key={i} className={styles.quote}>
-                              “{t}”
-                            </blockquote>
-                          ))}
+                {/* PC: 왼쪽은 공고 원문에서 정리한 내용(main), 오른쪽은 AI 해석(secondary). 모바일·태블릿은 main 다음에 AI */}
+                <div className={styles.resultGrid}>
+                  <div className={styles.resultMain}>
+                    <Section title="실제로 하게 될 일" mark={<SourceMark label={sourceLabel} />}>
+                      <TextList items={result.actualTasks} />
+                    </Section>
+                    <Section title="지원 조건" mark={<SourceMark label={sourceLabel} />} className={styles.sectionBreak}>
+                      <div className={styles.conditions}>
+                        <div className={styles.condCol}>
+                          <h4 className={styles.condTitle}>필수 조건</h4>
+                          <TextList items={result.required} />
                         </div>
+                        <div className={styles.condCol}>
+                          <h4 className={styles.condTitle}>우대 조건</h4>
+                          <TextList items={result.preferred} />
+                        </div>
+                      </div>
+                    </Section>
+                    <Section title="확인하고 지원하세요">
+                      {/* 확인할 항목이 있을 때만 안내 문장. 없으면 "발견되지 않았어요" 한 줄로 끝 */}
+                      {result.unclearPoints.length > 0 && (
+                        <p className={styles.checkIntro}>
+                          <InfoIcon />
+                          공고에 명시되지 않아 지원 전에 확인해 보면 좋은 항목이에요.
+                        </p>
                       )}
-                    </>
-                  )}
-                </Section>
-
-                <Section title="실제로 하게 될 일" mark={<SourceMark />}>
-                  <TextList items={result.actualTasks} />
-                </Section>
-
-                <Section title="지원 조건" mark={<SourceMark />} className={styles.sectionBreak}>
-                  <div className={styles.conditions}>
-                    <div className={styles.condCol}>
-                      <h4 className={styles.condTitle}>필수 조건</h4>
-                      <TextList items={result.required} />
-                    </div>
-                    <div className={styles.condCol}>
-                      <h4 className={styles.condTitle}>우대 조건</h4>
-                      <TextList items={result.preferred} />
-                    </div>
+                      <CheckPoints points={result.unclearPoints} />
+                    </Section>
                   </div>
-                </Section>
 
-                <Section title="핵심 업무·역량 키워드" mark={<AiMark />}>
-                  <SkillChips skills={result.skills} />
-                </Section>
+                  <aside className={styles.resultAside} aria-label="AI 해석">
+                    <Section title="30초 만에 이해하기" mark={<AiMark />} className={styles.sectionLead}>
+                      {result.simpleExplanation ? (
+                        <p className={styles.lead}>{result.simpleExplanation}</p>
+                      ) : (
+                        <p className={styles.empty}>{EMPTY_TEXT}</p>
+                      )}
 
-                {result.similarRoles.length > 0 && (
-                  <Section
-                    title="비슷한 직무와 뭐가 다를까?"
-                    mark={<AiMark />}
-                    className={styles.sectionBreak}
-                  >
-                    <p className={styles.muted}>
-                      아래 내용은 공고의 업무 내용을 바탕으로 AI가 비교한 참고 정보예요.
-                    </p>
-                    <dl className={styles.roles}>
-                      {result.similarRoles.map((r, i) => (
-                        <div key={i} className={styles.role}>
-                          <dt>{r.name}</dt>
-                          {r.difference && <dd>{r.difference}</dd>}
-                        </div>
-                      ))}
-                    </dl>
-                  </Section>
-                )}
-
-                <Section title="확인하고 지원하세요">
-                  <p className={styles.checkIntro}>
-                    <InfoIcon />
-                    공고에 없는 내용이라 지원 전에 확인해 보면 좋아요.
-                  </p>
-                  <CheckPoints points={result.unclearPoints} />
-                </Section>
+                      {/* 원문 근거: 서버가 공고 원문과 대조해 검증한 explanationEvidence만 그대로 표시 (없으면 버튼도 숨김) */}
+                      {result.explanationEvidence?.length > 0 && (
+                        <>
+                          <button
+                            type="button"
+                            className={styles.textButton}
+                            aria-expanded={evidenceOpen}
+                            aria-controls="evidence"
+                            onClick={() => setEvidenceOpen((v) => !v)}
+                          >
+                            {structuredInput ? "근거 보기" : "원문 근거 보기"}
+                            <Chevron open={evidenceOpen} />
+                          </button>
+                          {evidenceOpen && (
+                            <div id="evidence" className={styles.evidence}>
+                              <p className={styles.evidenceTitle}>
+                                {structuredInput ? "근거" : "원문 근거"} <SourceMark label={sourceLabel} />
+                              </p>
+                              {result.explanationEvidence.map((t, i) => (
+                                <blockquote key={i} className={styles.quote}>
+                                  “{t}”
+                                </blockquote>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </Section>
+                    <Section title="핵심 업무·역량 키워드" mark={<AiMark />}>
+                      <SkillChips skills={result.skills} />
+                    </Section>
+                    {result.similarRoles.length > 0 && (
+                      <Section
+                        title="비슷한 직무와 뭐가 다를까?"
+                        mark={<AiMark />}
+                        className={styles.sectionBreak}
+                      >
+                        <p className={styles.muted}>
+                          아래 내용은 공고의 업무 내용을 바탕으로 AI가 비교한 참고 정보예요.
+                        </p>
+                        <dl className={styles.roles}>
+                          {result.similarRoles.map((r, i) => (
+                            <div key={i} className={styles.role}>
+                              <dt>{r.name}</dt>
+                              {r.difference && <dd>{r.difference}</dd>}
+                            </div>
+                          ))}
+                        </dl>
+                      </Section>
+                    )}
+                  </aside>
+                </div>
               </article>
             )}
           </div>
